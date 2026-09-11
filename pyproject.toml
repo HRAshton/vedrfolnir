@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vedrfolnir"
+version = "0.3.0"
+description = "Self-hosted, ML-powered ETA prediction for concurrent workloads"
+readme = "README.md"
+requires-python = ">=3.15,<3.16"
+license = "0BSD"
+authors = [{name = "Vedrfolnir contributors"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.15",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.34,<1",
+    "SQLAlchemy>=2.0.52,<2.1",
+    "river>=0.26.1,<0.27",
+]
+
+[project.optional-dependencies]
+mssql = ["pymssql>=2.4.3,<2.5"]
+dev = ["pytest>=8,<10", "ruff>=0.17,<1", "build>=1.2,<2", "httpx>=0.28,<1"]
+
+[project.scripts]
+vedrfolnir = "vedrfolnir.cli:main"
+vedrfolnir-benchmark = "vedrfolnir.benchmarking.cli:main"
+vedrfolnir-travistorrent = "vedrfolnir.benchmark_travistorrent:main"
+vedrfolnir-wfcommons = "vedrfolnir.benchmark_quickstart:main"
+vedrfolnir-check-source = "vedrfolnir.source_validation:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+vedrfolnir = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py315"
+line-length = 110
+
+[tool.ruff.lint]
+# Start with regressions in imports and syntax; formatting legacy files is a later change.
+select = ["E4", "E9", "F821"]

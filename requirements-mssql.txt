@@ -1,0 +1,2 @@
+# Optional SQL Server integration; install only when needed.
+-e .[mssql]
