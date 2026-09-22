@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Vedrfolnir · Queue health</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a101a;
+        --panel: #121d2c;
+        --line: #29394b;
+        --text: #e5eef7;
+        --muted: #93a7bc;
+        --cyan: #68d8cf;
+        --gold: #f0bd78;
+        --purple: #b8a5f6;
+        --red: #f59999;
+        font:
+          14px/1.5 system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      main {
+        max-width: 1280px;
+        margin: auto;
+        padding: 32px 28px 50px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: -0.7px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 17px;
+      }
+      p {
+        margin: 5px 0;
+      }
+      .muted,
+      .small {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 1.8px;
+        color: var(--cyan);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      button,
+      select,
+      .button {
+        border: 1px solid var(--line);
+        background: #1b2b40;
+        color: var(--text);
+        border-radius: 7px;
+        padding: 8px 12px;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      .button:hover {
+        border-color: var(--cyan);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      a {
+        color: var(--cyan);
+      }
+      .link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--cyan);
+        text-align: left;
+      }
+      .health {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 22px 0 18px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 100%;
+        background: var(--muted);
+      }
+      .dot.ok {
+        background: var(--cyan);
+      }
+      .dot.bad {
+        background: var(--red);
+      }
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 5px;
+        background: #263343;
+        color: #c3d5e7;
+      }
+      .badge.warn {
+        color: var(--gold);
+        background: #392c1c;
+      }
+      .badge.good {
+        color: var(--cyan);
+        background: #17322f;
+      }
+      .alert {
+        padding: 13px 16px;
+        background: #351e24;
+        border: 1px solid #70414c;
+        color: #ffd1d1;
+        border-radius: 8px;
+        margin: 14px 0;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 16px 0 22px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .stat {
+        font-size: 29px;
+        letter-spacing: -0.7px;
+        font-weight: 650;
+        margin: 7px 0;
+      }
+      .stat small {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+      .section {
+        margin-top: 18px;
+      }
+      .table-wrap {
+        overflow: auto;
+        margin-top: 14px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        white-space: nowrap;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 11px 12px;
+        border-bottom: 1px solid #233347;
+        font-size: 13px;
+      }
+      th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .id {
+        max-width: 230px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .reason {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--gold);
+      }
+      .empty {
+        padding: 30px 12px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .chart {
+        min-height: 220px;
+        margin-top: 16px;
+      }
+      .chart svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        font-size: 12px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .legend span:before {
+        content: "";
+        display: inline-block;
+        width: 17px;
+        height: 2px;
+        margin: 0 7px 4px 0;
+        background: currentColor;
+      }
+      .summary {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .summary strong {
+        color: var(--text);
+        font-size: 17px;
+        margin-left: 8px;
+      }
+      .footer {
+        margin: 22px 0 0;
+      }
+      .warn-text {
+        color: var(--gold);
+      }
+      .negative {
+        color: var(--gold);
+      }
+      details > summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 12px;
+      }
+      dialog {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        width: min(920px, calc(100vw - 28px));
+        padding: 22px;
+      }
+      dialog::backdrop {
+        background: #0009;
+      }
+      dialog h2 {
+        overflow-wrap: anywhere;
+      }
+      .health-info {
+        margin-left: auto;
+      }
+      .nowrap {
+        white-space: nowrap;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      label {
+        color: var(--muted);
+      }
+      :focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: 3px;
+      }
+      @media (max-width: 850px) {
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        main {
+          padding: 24px 16px;
+        }
+        .health-info {
+          margin-left: 0;
+        }
+        .stat {
+          font-size: 26px;
+        }
+      }
+      @media (max-width: 500px) {
+        .card {
+          padding: 15px;
+        }
+        .toolbar {
+          gap: 8px;
+        }
+        h1 {
+          font-size: 25px;
+        }
+        .stats {
+          gap: 8px;
+        }
+        .summary {
+          gap: 12px;
+        }
+        .controls select {
+          max-width: 100%;
+        }
+        .health {
+          align-items: flex-start;
+        }
+        .chart {
+          min-height: 150px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="row">
+        <div>
+          <div class="eyebrow">Forecasting monitor</div>
+          <h1>Vedrfolnir</h1>
+          <p class="muted">Queue predictions and observed error, over time.</p>
+        </div>
+        <div class="toolbar">
+          <a
+            class="button"
+            href="/api/job-forecasts/export"
+            title="Latest 10,000 retained observations"
+            >Export observations</a
+          ><label><input id="auto" type="checkbox" checked /> Auto · 15s</label
+          ><button id="refresh" type="button">Refresh</button>
+        </div>
+      </header>
+      <div class="health" role="status">
+        <span id="health-dot" class="dot"></span
+        ><strong id="health-label">Connecting…</strong
+        ><span id="source-mode" class="badge"></span
+        ><span id="source-age" class="muted small"></span
+        ><span id="view-time" class="health-info muted small"
+          >No dashboard update yet</span
+        >
+      </div>
+      <div id="error" class="alert" role="alert" hidden></div>
+      <div id="demo" class="badge warn" hidden>
+        Synthetic demo data · these are not production accuracy measurements
+      </div>
+      <div class="stats" id="stats"></div>
+      <section class="card">
+        <div class="row">
+          <div>
+            <h2>Live jobs</h2>
+            <p class="small">
+              Start and finish estimates use currently visible work and
+              capacity.
+            </p>
+          </div>
+          <span id="live-count" class="small"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job execution</th>
+                <th>State / pool</th>
+                <th>Wait</th>
+                <th>Expected start</th>
+                <th>Expected finish</th>
+                <th>Forecast / unavailable reason</th>
+              </tr>
+            </thead>
+            <tbody id="jobs"></tbody>
+          </table>
+        </div>
+        <div class="row small" style="margin-top: 12px">
+          <span
+            >Times shown in your local timezone. Select a job to inspect saved
+            observations.</span
+          >
+          <div>
+            <button id="prev" type="button">Previous</button>
+            <button id="next" type="button">Next</button>
+          </div>
+        </div>
+      </section>
+      <section class="card section">
+        <div class="row">
+          <div>
+            <h2>Prediction error over time</h2>
+            <p class="small">
+              First observation per job and status · grouped by completion day
+              (UTC).
+            </p>
+          </div>
+          <div class="controls">
+            <select id="target" aria-label="Prediction target">
+              <option value="queued.wait_error">
+                Queued · wait until start
+              </option>
+              <option value="queued.finish_error">
+                Queued · time until finish
+              </option>
+              <option value="running.finish_error">
+                Running · time until finish
+              </option></select
+            ><select id="days" aria-label="Time window">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+        </div>
+        <div class="summary small" id="chart-summary"></div>
+        <div
+          id="chart"
+          class="chart"
+          role="img"
+          aria-label="Daily forecast error in minutes"
+        ></div>
+        <div class="legend">
+          <span style="color: var(--cyan)">MAE</span
+          ><span style="color: var(--gold)">P90 absolute error</span
+          ><span style="color: var(--purple)">Signed bias</span>
+        </div>
+        <p id="chart-note" class="small" style="margin-top: 12px"></p>
+        <p class="small">
+          Negative bias means the forecast was too early. P90 error measures
+          misses; it is not a completion-by guarantee. Job uncertainty is not
+          calibrated.
+        </p>
+      </section>
+      <section class="card section" id="job-breakdown">
+        <div class="row">
+          <div>
+            <h2>Error by workload</h2>
+            <p id="breakdown-target" class="small"></p>
+          </div>
+          <select id="group-by" aria-label="Group job errors by">
+            <option value="pool">Runner pool</option>
+            <option value="job_type">Job type</option>
+            <option value="load">Pool load at capture</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th id="group-heading">Runner pool</th>
+                <th>Eligible / evaluated</th>
+                <th>Scored</th>
+                <th>MAE</th>
+                <th>P90 error</th>
+                <th>Bias</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody id="job-cohorts"></tbody>
+          </table>
+        </div>
+        <p class="small" style="margin-top: 12px">
+          Uses the full recent sample, independent of the chart window. Groups
+          use pool, job type and capacity evidence saved at capture. Load is
+          queued jobs / effective pool slots: idle &lt; 0.5, busy &lt; 2,
+          saturated ≥ 2. Zero capacity is paused; missing evidence is unknown.
+          Inferred slots are lower bounds. Small samples (&lt; 40 scored) are
+          flagged; larger samples remain descriptive, not proof of accuracy.
+        </p>
+      </section>
+      <section class="card section">
+        <div class="row">
+          <div>
+            <h2>Recent outcomes</h2>
+            <p class="small">
+              Saved forecasts matched to actual completion. Cancelled or invalid
+              outcomes are excluded from accuracy metrics.
+            </p>
+          </div>
+          <span id="pending" class="small"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job execution</th>
+                <th>Forecast captured</th>
+                <th>Observed state</th>
+                <th>Outcome</th>
+                <th>Wait error</th>
+                <th>Finish error</th>
+              </tr>
+            </thead>
+            <tbody id="outcomes"></tbody>
+          </table>
+        </div>
+      </section>
+      <details class="card section">
+        <summary>Workflow forecasts and accuracy</summary>
+        <p class="small" style="margin-top: 14px">
+          Workflow targets are separate from individual job targets. P90 bounds
+          may be absent with insufficient calibration.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>State</th>
+                <th>Expected finish</th>
+                <th>P90 finish</th>
+                <th>Method</th>
+              </tr>
+            </thead>
+            <tbody id="plans"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Load</th>
+                <th>Method</th>
+                <th>Completed plans</th>
+                <th>MAE</th>
+                <th>Bias</th>
+              </tr>
+            </thead>
+            <tbody id="workloads"></tbody>
+          </table>
+        </div>
+      </details>
+      <details class="card section">
+        <summary>Application and recording status</summary>
+        <pre id="status"></pre>
+      </details>
+      <p class="footer small">
+        Experimental forecasts under documented scheduling assumptions. Small
+        cohorts are descriptive; jobs within a workflow are correlated.
+        <a href="/docs">API documentation</a>
+      </p>
+    </main>
+    <dialog id="detail">
+      <div class="row">
+        <h2 id="detail-title">Job observations</h2>
+        <button id="close-detail" type="button">Close</button>
+      </div>
+      <div id="detail-body" class="table-wrap"></div>
+    </dialog>
+    <script>
+      const byId = (id) => document.getElementById(id);
+      let latest = null,
+        busy = false,
+        queued = false,
+        offset = 0,
+        detailRequest = 0;
+      const limit = 100;
+      function date(v) {
+        return v ? new Date(v).toLocaleString() : " - ";
+      }
+      function number(v) {
+        return v == null ? " - " : Number(v).toFixed(1);
+      }
+      function minutes(v) {
+        return v == null ? " - " : number(v) + " min";
+      }
+      function friendly(v) {
+        return String(v || " - ").replaceAll("_", " ");
+      }
+      function cell(row, value, className = "") {
+        const td = document.createElement("td");
+        td.textContent = String(value ?? " - ");
+        td.className = className;
+        row.appendChild(td);
+        return td;
+      }
+      function empty(root, cols, text) {
+        const tr = document.createElement("tr"),
+          td = cell(tr, text, "empty");
+        td.colSpan = cols;
+        root.appendChild(tr);
+      }
+      function jobLink(tr, id) {
+        const td = cell(tr, "", "id"),
+          b = document.createElement("button");
+        b.type = "button";
+        b.className = "link";
+        b.textContent = id;
+        b.onclick = () => showJob(id);
+        td.appendChild(b);
+      }
+      function stat(title, value, note) {
+        const c = document.createElement("div");
+        c.className = "card";
+        const t = document.createElement("div");
+        t.className = "small";
+        t.textContent = title;
+        const n = document.createElement("div");
+        n.className = "stat";
+        n.textContent = value;
+        const p = document.createElement("p");
+        p.className = "small";
+        p.textContent = note;
+        c.append(t, n, p);
+        return c;
+      }
+      function cohort(status) {
+        return (
+          latest.metrics.cohorts.find((c) => c.observed_status === status) || {
+            available_forecasts: 0,
+            evaluated_observations: 0,
+            wait_error: { count: 0 },
+            finish_error: { count: 0 },
+          }
+        );
+      }
+      async function get(url, signal) {
+        const r = await fetch(url, { cache: "no-store", signal });
+        if (!r.ok)
+          throw Error("API " + r.status + " (" + url.split("?")[0] + ")");
+        return r.json();
+      }
+      async function refresh() {
+        if (busy) {
+          queued = true;
+          return;
+        }
+        busy = true;
+        byId("refresh").disabled = true;
+        const controller = new AbortController(),
+          timer = setTimeout(() => controller.abort(), 12000);
+        try {
+          const [
+            status,
+            jobs,
+            metrics,
+            trend,
+            outcomes,
+            plans,
+            workloads,
+            jobWorkloads,
+          ] = await Promise.all(
+            [
+              "/api/status",
+              "/api/jobs?limit=" + limit + "&offset=" + offset,
+              "/api/job-metrics",
+              "/api/job-metrics/daily?days=" + byId("days").value,
+              "/api/job-forecasts?limit=12&completed_only=true",
+              "/api/plans",
+              "/api/metrics/by-workload",
+              "/api/job-metrics/by-workload?group_by=" + byId("group-by").value,
+            ].map((u) => get(u, controller.signal)),
+          );
+          latest = {
+            status,
+            jobs,
+            metrics,
+            trend: trend.rows,
+            outcomes,
+            plans,
+            workloads,
+            jobWorkloads,
+          };
+          byId("error").hidden = true;
+          render();
+          byId("view-time").textContent =
+            "View updated " + new Date().toLocaleTimeString();
+          if (jobs.total_jobs > 0 && offset >= jobs.total_jobs) {
+            offset = Math.floor((jobs.total_jobs - 1) / limit) * limit;
+            queued = true;
+          }
+        } catch (e) {
+          byId("error").hidden = false;
+          byId("error").textContent =
+            "Dashboard refresh failed. Displayed observations may be stale. " +
+            (e.name === "AbortError" ? "Request timed out." : e.message);
+          byId("health-label").textContent = "View stale";
+          byId("health-dot").className = "dot bad";
+        } finally {
+          clearTimeout(timer);
+          busy = false;
+          byId("refresh").disabled = false;
+          if (queued) {
+            queued = false;
+            refresh();
+          }
+        }
+      }
+      function render() {
+        const { status, jobs, metrics, outcomes, plans, workloads } = latest;
+        byId("health-label").textContent =
+          {
+            recent: "Source recent",
+            stale: "Source stale",
+            error: "Source error",
+            not_yet_synced: "Waiting for source",
+          }[jobs.data_source_sync] || "Source unknown";
+        byId("health-dot").className =
+          "dot " + (jobs.data_source_sync === "recent" ? "ok" : "bad");
+        byId("source-mode").textContent =
+          friendly(jobs.source_mode) + " source";
+        byId("demo").hidden = jobs.source_mode !== "demo";
+        byId("source-age").textContent = jobs.source_observed_at
+          ? "Snapshot " +
+            date(jobs.source_observed_at) +
+            " · " +
+            Math.max(0, Math.round(jobs.source_age_seconds)) +
+            "s old"
+          : "No successful snapshot";
+        const q = cohort("queued");
+        byId("stats").replaceChildren(
+          stat(
+            "Active jobs",
+            jobs.total_jobs.toLocaleString(),
+            "Queued, running and pending",
+          ),
+          stat(
+            "Queued wait MAE",
+            minutes(q.wait_error.mae_minutes),
+            q.wait_error.count +
+              " scored · " +
+              q.available_forecasts +
+              "/" +
+              q.evaluated_observations +
+              " eligible first forecasts",
+          ),
+          stat(
+            "Queued finish MAE",
+            minutes(q.finish_error.mae_minutes),
+            q.finish_error.count + " completed forecasts",
+          ),
+          stat(
+            "Awaiting outcomes",
+            metrics.awaiting_outcomes.toLocaleString(),
+            metrics.label_issues
+              ? metrics.label_issues + " label issues need inspection"
+              : "Saved observations awaiting completion",
+          ),
+        );
+        const root = byId("jobs");
+        root.replaceChildren();
+        for (const j of jobs.jobs) {
+          const tr = document.createElement("tr"),
+            p = j.prediction;
+          jobLink(tr, j.run_id);
+          cell(tr, j.status + " / " + j.sched_pool_id);
+          cell(tr, minutes(p.predicted_wait_minutes));
+          cell(tr, date(p.predicted_start_at));
+          cell(tr, date(p.predicted_finish_at));
+          const text = p.forecast_available
+            ? friendly(p.prediction_method)
+            : p.unavailable_reasons.map(friendly).join(", ");
+          const reason = cell(tr, text, p.forecast_available ? "" : "reason");
+          reason.title = text;
+          tr.title = p.evidence_warnings.map(friendly).join("; ");
+          root.appendChild(tr);
+        }
+        if (!jobs.jobs.length)
+          empty(root, 6, "No active jobs in this snapshot.");
+        byId("live-count").textContent =
+          "Showing " + jobs.jobs.length + " of " + jobs.total_jobs;
+        byId("prev").disabled = offset === 0;
+        byId("next").disabled = offset + limit >= jobs.total_jobs;
+        const recent = byId("outcomes");
+        recent.replaceChildren();
+        for (const p of outcomes) {
+          const tr = document.createElement("tr");
+          jobLink(tr, p.run_id);
+          cell(tr, date(p.predicted_at));
+          cell(tr, p.observed_status);
+          cell(
+            tr,
+            p.outcome_issue ? friendly(p.outcome_issue) : p.outcome_status,
+          );
+          cell(tr, minutes(p.wait_error_minutes));
+          cell(tr, minutes(p.finish_error_minutes));
+          recent.appendChild(tr);
+        }
+        if (!outcomes.length)
+          empty(
+            recent,
+            6,
+            "No matched outcomes yet. Successful polls record forecasts automatically.",
+          );
+        byId("pending").textContent =
+          metrics.stored_observations +
+          " observations retained · " +
+          metrics.retention_days +
+          " day retention";
+        const workflow = byId("plans");
+        workflow.replaceChildren();
+        for (const p of plans) {
+          const tr = document.createElement("tr"),
+            e = p.prediction;
+          cell(tr, p.plan_id);
+          cell(tr, p.status);
+          cell(tr, date(e?.predicted_finish_at));
+          cell(tr, date(e?.p90_finish_at));
+          cell(tr, friendly(e?.prediction_method));
+          workflow.appendChild(tr);
+        }
+        if (!plans.length) empty(workflow, 5, "No active workflows.");
+        const load = byId("workloads");
+        load.replaceChildren();
+        for (const c of workloads.cohorts) {
+          const tr = document.createElement("tr");
+          cell(tr, c.regime);
+          cell(tr, friendly(c.prediction_method));
+          cell(tr, c.completed_plans_evaluated);
+          cell(tr, minutes(c.mae_minutes));
+          cell(tr, minutes(c.signed_bias_minutes));
+          load.appendChild(tr);
+        }
+        if (!workloads.cohorts.length)
+          empty(load, 5, "No evaluated workflow forecasts yet.");
+        byId("status").textContent = JSON.stringify(
+          { application: status, recording: metrics },
+          null,
+          2,
+        );
+        renderChart();
+        renderJobCohorts();
+      }
+      function renderJobCohorts() {
+        if (!latest) return;
+        const [state, field] = byId("target").value.split("."),
+          data = latest.jobWorkloads,
+          root = byId("job-cohorts");
+        byId("group-heading").textContent = {
+          pool: "Runner pool",
+          job_type: "Job type",
+          load: "Pool load",
+        }[data.group_by];
+        byId("breakdown-target").textContent =
+          byId("target").selectedOptions[0].textContent.trim() +
+          " · latest " +
+          data.sample_limit_per_status +
+          " completed observations per status";
+        root.replaceChildren();
+        for (const c of data.cohorts.filter(
+          (c) => c.observed_status === state,
+        )) {
+          const tr = document.createElement("tr"),
+            score = c[field];
+          const group = cell(tr, c.group, "id");
+          group.title = c.group;
+          cell(tr, c.available_forecasts + " / " + c.evaluated_observations);
+          cell(tr, score.count);
+          cell(tr, minutes(score.mae_minutes));
+          cell(tr, minutes(score.p90_absolute_error_minutes));
+          cell(tr, minutes(score.signed_bias_minutes));
+          const reasons = Object.entries(c.unavailable_reasons)
+            .map(([r, n]) => friendly(r) + ": " + n)
+            .join("; ");
+          const note = cell(
+            tr,
+            (score.count < 40 ? "Small sample" : "Observed sample") +
+              (c.excluded_outcomes
+                ? " · " + c.excluded_outcomes + " excluded"
+                : ""),
+            score.count < 40 ? "warn-text" : "",
+          );
+          note.title =
+            reasons || "No unavailable reasons in evaluated outcomes";
+          root.appendChild(tr);
+        }
+        if (!root.children.length)
+          empty(root, 7, "No completed observations for this target yet.");
+      }
+      function svg(tag, attrs = {}, text) {
+        const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (const [k, v] of Object.entries(attrs))
+          e.setAttribute(k, String(v));
+        if (text != null) e.textContent = text;
+        return e;
+      }
+      function renderChart() {
+        if (!latest) return;
+        const [state, field] = byId("target").value.split("."),
+          rows = latest.trend.map((r) => ({ day: r.day, ...r[state][field] })),
+          stats = cohort(state)[field],
+          count = rows.reduce((n, r) => n + r.count, 0);
+        const summary = byId("chart-summary");
+        summary.replaceChildren();
+        for (const [name, value] of [
+          ["MAE", stats.mae_minutes],
+          ["P90 error", stats.p90_absolute_error_minutes],
+          ["Bias", stats.signed_bias_minutes],
+        ]) {
+          const p = document.createElement("span");
+          p.textContent = name;
+          const s = document.createElement("strong");
+          s.textContent = minutes(value);
+          p.appendChild(s);
+          summary.appendChild(p);
+        }
+        const note = byId("chart-note");
+        note.textContent =
+          count +
+          " scored observations in " +
+          rows.length +
+          " days; chart uses the latest " +
+          latest.metrics.sample_limit_per_status +
+          " completed observations per status. Headline statistics use that full recent sample.";
+        const root = byId("chart");
+        root.replaceChildren();
+        if (!count) {
+          const p = document.createElement("p");
+          p.className = "empty";
+          p.textContent =
+            "No completed forecasts for this target yet. Observations appear after actual outcomes arrive.";
+          root.appendChild(p);
+          return;
+        }
+        const colors = {
+            mae_minutes: "#68d8cf",
+            p90_absolute_error_minutes: "#f0bd78",
+            signed_bias_minutes: "#b8a5f6",
+          },
+          values = rows.flatMap((r) =>
+            Object.keys(colors)
+              .map((k) => r[k])
+              .filter((v) => v != null),
+          );
+        let lo = Math.min(0, ...values),
+          hi = Math.max(1, ...values);
+        const padding = (hi - lo) * 0.08;
+        hi += padding;
+        if (lo < 0) lo -= padding;
+        const W = 960,
+          H = 245,
+          L = 55,
+          R = 20,
+          T = 16,
+          B = 38,
+          x = (i) => L + (i * (W - L - R)) / Math.max(1, rows.length - 1),
+          y = (v) => T + ((hi - v) * (H - T - B)) / (hi - lo);
+        const chart = svg("svg", { viewBox: "0 0 " + W + " " + H });
+        for (let i = 0; i <= 4; i++) {
+          const v = lo + ((hi - lo) * i) / 4;
+          chart.append(
+            svg("line", {
+              x1: L,
+              y1: y(v),
+              x2: W - R,
+              y2: y(v),
+              stroke: "#25374a",
+            }),
+            svg(
+              "text",
+              {
+                x: L - 10,
+                y: y(v) + 4,
+                fill: "#93a7bc",
+                "text-anchor": "end",
+                "font-size": 11,
+              },
+              number(v),
+            ),
+          );
+        }
+        chart.append(
+          svg("line", {
+            x1: L,
+            y1: y(0),
+            x2: W - R,
+            y2: y(0),
+            stroke: "#5a7188",
+            "stroke-dasharray": "4 4",
+          }),
+        );
+        for (const i of [
+          ...new Set([0, Math.floor((rows.length - 1) / 2), rows.length - 1]),
+        ])
+          chart.append(
+            svg(
+              "text",
+              {
+                x: x(i),
+                y: H - 12,
+                fill: "#93a7bc",
+                "text-anchor": "middle",
+                "font-size": 11,
+              },
+              rows[i].day.slice(5),
+            ),
+          );
+        for (const [key, color] of Object.entries(colors)) {
+          let path = "",
+            started = false;
+          rows.forEach((r, i) => {
+            if (r[key] == null) {
+              started = false;
+              return;
+            }
+            path += (started ? " L" : " M") + x(i) + " " + y(r[key]);
+            started = true;
+            const point = svg("circle", {
+              cx: x(i),
+              cy: y(r[key]),
+              r: 2.5,
+              fill: color,
+            });
+            point.appendChild(
+              svg(
+                "title",
+                {},
+                r.day +
+                  " · n=" +
+                  r.count +
+                  " · " +
+                  friendly(key) +
+                  ": " +
+                  number(r[key]) +
+                  " min",
+              ),
+            );
+            chart.appendChild(point);
+          });
+          chart.appendChild(
+            svg("path", {
+              d: path,
+              stroke: color,
+              "stroke-width": 2,
+              fill: "none",
+            }),
+          );
+        }
+        root.appendChild(chart);
+      }
+      async function showJob(id) {
+        const request = ++detailRequest;
+        byId("detail-title").textContent = id;
+        const root = byId("detail-body");
+        root.textContent = "Loading saved observations…";
+        if (!byId("detail").open) byId("detail").showModal();
+        try {
+          const rows = await get(
+            "/api/job-forecasts?run_id=" + encodeURIComponent(id) + "&limit=10",
+          );
+          if (request !== detailRequest) return;
+          root.replaceChildren();
+          if (!rows.length) {
+            root.textContent =
+              "No saved observation yet. The next successful poll records the first observation per status.";
+            return;
+          }
+          const table = document.createElement("table");
+          for (const r of rows) {
+            const tr = document.createElement("tr");
+            cell(tr, r.observed_status);
+            cell(tr, date(r.predicted_at));
+            cell(
+              tr,
+              r.forecast_available
+                ? "Forecast saved"
+                : r.unavailable_reasons.map(friendly).join(", "),
+            );
+            cell(tr, "Finish error " + minutes(r.finish_error_minutes));
+            table.appendChild(tr);
+          }
+          root.appendChild(table);
+        } catch (e) {
+          if (request !== detailRequest) return;
+          root.textContent = "Could not load observations: " + e.message;
+        }
+      }
+      byId("refresh").onclick = refresh;
+      byId("days").onchange = refresh;
+      byId("target").onchange = () => {
+        renderChart();
+        renderJobCohorts();
+      };
+      byId("group-by").onchange = refresh;
+      byId("auto").onchange = () => {
+        if (byId("auto").checked) refresh();
+      };
+      byId("prev").onclick = () => {
+        offset = Math.max(0, offset - limit);
+        refresh();
+      };
+      byId("next").onclick = () => {
+        offset += limit;
+        refresh();
+      };
+      byId("close-detail").onclick = () => {
+        detailRequest++;
+        byId("detail").close();
+      };
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && byId("auto").checked) refresh();
+      });
+      setInterval(() => {
+        if (!document.hidden && byId("auto").checked) refresh();
+      }, 15000);
+      refresh();
+    </script>
+  </body>
+</html>
