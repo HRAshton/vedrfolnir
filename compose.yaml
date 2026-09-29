@@ -1,0 +1,51 @@
+name: vedrfolnir
+services:
+  vedrfolnir:
+    build:
+      context: .
+      args:
+        INSTALL_MSSQL: ${INSTALL_MSSQL:-false}
+    image: vedrfolnir:local
+    restart: unless-stopped
+    environment:
+      SOURCE_MODE: ${SOURCE_MODE:-demo}
+      ETA_DB_URL: sqlite:////data/eta.sqlite3
+      ETA_ADMIN_TOKEN: ${ETA_ADMIN_TOKEN:?Set ETA_ADMIN_TOKEN in .env}
+      ETA_POLL_SECONDS: ${ETA_POLL_SECONDS:-120}
+      ETA_PREDICTION_INTERVAL_SECONDS: ${ETA_PREDICTION_INTERVAL_SECONDS:-300}
+      ETA_POOL_CAPACITY_REFRESH_SECONDS: ${ETA_POOL_CAPACITY_REFRESH_SECONDS:-600}
+      ETA_IMPORT_BATCH: ${ETA_IMPORT_BATCH:-2000}
+      ETA_IMPORT_LIMIT_PER_POLL: ${ETA_IMPORT_LIMIT_PER_POLL:-10000}
+      ETA_MIN_ML_TRAINING: ${ETA_MIN_ML_TRAINING:-30}
+      ETA_MAX_HISTORY_PER_GROUP: ${ETA_MAX_HISTORY_PER_GROUP:-500}
+      ETA_JOB_RETENTION_DAYS: ${ETA_JOB_RETENTION_DAYS:-90}
+      ETA_HISTORY_RECONCILE_DAYS: ${ETA_HISTORY_RECONCILE_DAYS:-7}
+      ETA_HISTORY_RECONCILE_LIMIT_PER_POLL: ${ETA_HISTORY_RECONCILE_LIMIT_PER_POLL:-2000}
+      ETA_HISTORY_RETENTION_DAYS: ${ETA_HISTORY_RETENTION_DAYS:-365}
+      ETA_PLAN_RETENTION_DAYS: ${ETA_PLAN_RETENTION_DAYS:-365}
+      ETA_PLAN_UNRESOLVED_RETENTION_DAYS: ${ETA_PLAN_UNRESOLVED_RETENTION_DAYS:-730}
+      ETA_RETENTION_BATCH: ${ETA_RETENTION_BATCH:-1000}
+      MSSQL_HOST: ${MSSQL_HOST:-}
+      MSSQL_PORT: ${MSSQL_PORT:-1433}
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-}
+      MSSQL_USER: ${MSSQL_USER:-}
+      MSSQL_PASSWORD: ${MSSQL_PASSWORD:-}
+      MSSQL_QUERY_DIR: /srv/queries
+      CSV_DATA_DIR: /srv/examples/data
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      LOG_CONFIG_FILE: ${LOG_CONFIG_FILE:-}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - vedrfolnir-data:/data
+      - ${SQL_QUERY_PATH:-./queries}:/srv/queries:ro
+      - ${CSV_SOURCE_PATH:-./examples/data}:/srv/examples/data:ro
+      - ./logging:/srv/logging:ro
+volumes:
+  vedrfolnir-data: {}

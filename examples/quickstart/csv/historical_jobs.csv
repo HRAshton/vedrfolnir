@@ -1,0 +1,5 @@
+run_id,plan_id,job_id,status,started_at,finished_at,vm_name,sched_pool_id
+h-001,finished-001,compile,passed,2026-09-01T09:00:00Z,2026-09-01T09:12:00Z,runner-a,builders
+h-002,finished-001,test,passed,2026-09-01T09:15:00Z,2026-09-01T09:21:00Z,runner-a,builders
+h-003,finished-002,compile,passed,2026-09-01T09:30:00Z,2026-09-01T09:42:00Z,runner-b,builders
+h-004,finished-002,test,passed,2026-09-01T10:00:00Z,2026-09-01T10:06:00Z,runner-b,builders

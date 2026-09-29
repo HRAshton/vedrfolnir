@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "json": {"()": "vedrfolnir.logging_setup.JsonLogFormatter"}
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "json",
+      "stream": "ext://sys.stdout"
+    },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "json",
+      "filename": "/data/vedrfolnir.log",
+      "maxBytes": 10485760,
+      "backupCount": 3,
+      "encoding": "utf-8"
+    }
+  },
+  "root": {"level": "INFO", "handlers": ["console", "file"]}
+}
