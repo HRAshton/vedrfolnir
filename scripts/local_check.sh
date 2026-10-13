@@ -22,32 +22,31 @@ quick() {
 full() {
   quick
   "$PYTHON" -m simulator.validation --quick --output benchmark-results/local-smoke
-  local wheel
+  local wheel sdist expected artifact kind
   CHECK_TEMP="$(mktemp -d)"
   trap 'rm -rf "$CHECK_TEMP"' EXIT
-  # Keep builds offline by using preinstalled build dependencies.
+  # Build with the development environment's explicitly installed backend tools.
   "$PYTHON" -m build --no-isolation --outdir "$CHECK_TEMP/dist"
-  wheel="$(find "$CHECK_TEMP/dist" -maxdepth 1 -name '*.whl' -print -quit)"
-  if [[ -z "$wheel" ]]; then echo "No wheel built" >&2; return 1; fi
-  "$PYTHON" -m venv --system-site-packages "$CHECK_TEMP/verify"
-  "$CHECK_TEMP/verify/bin/python" -m pip install --no-index --no-deps "$wheel"
-  (
-    cd "$CHECK_TEMP"
-    "$CHECK_TEMP/verify/bin/python" - <<'PY'
-from importlib.metadata import version
-from importlib.resources import files
-from vedrfolnir import __version__
-from vedrfolnir.api import app
-from importlib.metadata import entry_points
-assert version("vedrfolnir") == __version__ == app.version
-assert (files("vedrfolnir") / "static" / "dashboard.html").is_file()
-assert any(ep.name == "vedrfolnir" for ep in entry_points(group="console_scripts"))
-print("Installed wheel verified:", __version__)
-PY
-  )
+  expected="$("$PYTHON" -c 'from vedrfolnir import __version__; print(__version__)')"
+  wheel="$CHECK_TEMP/dist/vedrfolnir-$expected-py3-none-any.whl"
+  sdist="$CHECK_TEMP/dist/vedrfolnir-$expected.tar.gz"
+  [[ -f "$wheel" && -f "$sdist" ]] || { echo "Missing expected distributions" >&2; return 1; }
+  [[ "$(find "$CHECK_TEMP/dist" -maxdepth 1 -type f | wc -l)" -eq 2 ]] || { echo "Unexpected distributions" >&2; return 1; }
+  cp scripts/verify_distribution.py "$CHECK_TEMP/verify_distribution.py"
+  for kind in wheel sdist; do
+    if [[ "$kind" == wheel ]]; then artifact="$wheel"; else artifact="$sdist"; fi
+    # Resolve real dependencies in clean environments; never inherit editable installs.
+    "$PYTHON" -m venv "$CHECK_TEMP/$kind"
+    "$CHECK_TEMP/$kind/bin/python" -m pip install "$artifact"
+    (
+      cd "$CHECK_TEMP"
+      PYTHONPATH="" "$CHECK_TEMP/$kind/bin/python" verify_distribution.py "$expected"
+    )
+  done
+  sha256sum "$wheel" "$sdist"
   echo "Full local checks passed."
 }
-docker() {
+docker_check() {
   docker info >/dev/null
   docker build --tag vedrfolnir:local-smoke .
   "$PYTHON" scripts/release_smoke.py --image vedrfolnir:local-smoke
@@ -55,5 +54,5 @@ docker() {
 case "$MODE" in
   quick) quick ;;
   full) full ;;
-  docker) docker ;;
+  docker) docker_check ;;
 esac

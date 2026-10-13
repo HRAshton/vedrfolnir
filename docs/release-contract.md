@@ -25,11 +25,11 @@ RCs are GitHub prereleases and never move `latest`. Any preview alias must
 remain separate from stable aliases. Final-release convenience aliases may
 move only after all immutable publication paths succeed.
 
-Hosted PR/push CI is planned next. Future publishing requires an explicit,
+Hosted PR/push CI runs the Python/package and shell/workflow gates. Future publishing requires an explicit,
 protected release tag on an approved default-branch commit and protected
 environment approval. Pull-request contexts and arbitrary merges never
-publish. This contract adds no workflows, release tags, credentials or
-publication. PyPI/GHCR availability must be verified before consumer install
+publish. CI has read-only permissions and performs no publishing. Release tags,
+credentials and publication require subsequent milestones. PyPI/GHCR availability must be verified before consumer install
 commands are advertised.
 
 ## Supported deployment and limits

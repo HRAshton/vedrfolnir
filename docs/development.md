@@ -35,13 +35,34 @@ For SQL Server experiments install `.[mssql,dev]`. Run pytest with real River in
 5. Bootstrap **independent seeds**, not correlated jobs/polls; keep a separate unseen holdout.
 6. Record wall-clock times, workload scenario, simulator seed, historical reconstruction mode and Git SHA with published benchmark metrics.
 
-**CI plan:** add hosted checks for PRs and pushes to `master` in the next
-release-engineering PR. No hosted workflow exists yet. Until then validate
-on a local CPython 3.15 environment. Run `bash scripts/local_check.sh quick` for
-Ruff and real River tests; `full` adds quick simulation, isolated wheel
-and sdist; the explicit `docker` mode builds the image and tests
-startup/restart. Historical Actions evidence belongs to the old repository
-and does not establish validation of this recreated repository.
+## Automated and local gates
+
+`.github/workflows/ci.yml` runs on every PR (including fork, stacked and
+documentation-only PRs) and pushes to `master`, on `ubuntu-24.04` with
+`contents: read` and no persisted checkout credentials. Stable job names:
+
+- **Python and package validation**: stable CPython 3.15 via setup-python;
+  when unavailable, a checksum-verified source build of 3.15.0. An explicit
+  version/final-release check prevents substitution of an older or prerelease
+  interpreter. Installs `.[dev]` with real River; runs the full gate and
+  compileall; checks PR titles and non-merge commit subjects.
+- **Shell and workflow validation**: Bash syntax, ShellCheck and actionlint.
+
+Required status checks can be configured only after these jobs have run
+successfully. Superseded runs are cancelled by concurrency. No path filters
+skip required checks. Actions are SHA-pinned; ordinary CI never publishes.
+No Ruff formatting gate is imposed on existing files.
+
+`bash scripts/local_check.sh quick` runs Ruff and real River pytest. `full`
+adds quick simulation, wheel/sdist builds and independent clean installs with
+normally resolved dependencies, real HTTP startup, installed API version,
+dashboard and all console-script checks. Unlike the old verifier, these venvs
+do not inherit base or editable packages. `full` requires index access (or an
+explicitly configured complete wheelhouse), plus installed setuptools/wheel
+from `.[dev]`. Logs record pytest count, Python/River versions, tested Git SHA
+and distribution SHA-256 hashes. Heavyweight multi-seed public benchmarks remain
+opt-in. The explicit `docker` mode builds and checks startup/restart separately.
+Historical Actions evidence belongs to the old repository.
 
 ## Dependency and storage compatibility
 
@@ -68,8 +89,7 @@ and `chore:` prefixes. Release engineering may also use `ci:`, `security:`
 and `release:`. Squash subjects must retain the PR's conventional title;
 GitHub-generated merge commits are allowed.
 
-The first candidate is `0.3.0rc1` / tag `v0.3.0rc1`. Hosted CI and future
-PyPI/GHCR publishing are authorized directions, but require their own
+The first candidate is `0.3.0rc1` / tag `v0.3.0rc1`. Hosted CI validates PRs; future PyPI/GHCR publishing requires its own
 qualification and protection milestones. Publication will run only from
 explicit, protected release tags with environment approval, never from PR
 contexts or arbitrary merges. No tag or publication is created by this PR.

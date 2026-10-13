@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-package:
+    name: Python and package validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up stable CPython 3.15
+        id: python
+        continue-on-error: true
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.15'
+          allow-prereleases: false
+      - name: Build verified CPython when no hosted binary exists
+        if: steps.python.outcome == 'failure'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev libgdbm-dev libncurses-dev libexpat1-dev uuid-dev
+          bash scripts/setup_python315.sh "$RUNNER_TEMP/python315"
+          echo "$RUNNER_TEMP/python315/bin" >> "$GITHUB_PATH"
+      - name: Verify interpreter and install development dependencies
+        run: |
+          python -c 'import sys; assert sys.version_info[:2] == (3, 15) and sys.version_info.releaselevel == "final", sys.version; print(sys.version)'
+          python -m venv .venv
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> "$GITHUB_ENV"
+          .venv/bin/python -m pip install -e '.[dev]'
+      - name: Record source and runtime
+        run: |
+          git rev-parse HEAD
+          python -c 'import sys, river; print(sys.version); print("River", river.__version__)'
+      - name: PR title and commit policy
+        run: python scripts/check_commit_policy.py
+      - name: Full gate (quick tests, simulation, wheel and sdist installs)
+        run: bash scripts/local_check.sh full
+      - name: Compile Python sources
+        run: python -m compileall -q src simulator scripts tests
+
+  tooling:
+    name: Shell and workflow validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - name: Install linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends shellcheck
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - name: Check every shell script and workflow
+        run: |
+          mapfile -t scripts < <(git ls-files '*.sh')
+          for script in "${scripts[@]}"; do bash -n "$script"; done
+          shellcheck "${scripts[@]}"
+          "$(go env GOPATH)/bin/actionlint" -color
