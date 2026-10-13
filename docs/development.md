@@ -35,11 +35,13 @@ For SQL Server experiments install `.[mssql,dev]`. Run pytest with real River in
 5. Bootstrap **independent seeds**, not correlated jobs/polls; keep a separate unseen holdout.
 6. Record wall-clock times, workload scenario, simulator seed, historical reconstruction mode and Git SHA with published benchmark metrics.
 
-**Current policy: no GitHub-hosted runners.** Validate on a local CPython 3.15 environment. Run `bash scripts/local_check.sh quick` for
+**CI plan:** add hosted checks for PRs and pushes to `master` in the next
+release-engineering PR. No hosted workflow exists yet. Until then validate
+on a local CPython 3.15 environment. Run `bash scripts/local_check.sh quick` for
 Ruff and real River tests; `full` adds quick simulation, isolated wheel
 and sdist; the explicit `docker` mode builds the image and tests
-startup/restart. Historical GitHub Actions results remain available, but
-no Actions job is triggered by new pushes, PRs or manual dispatch.
+startup/restart. Historical Actions evidence belongs to the old repository
+and does not establish validation of this recreated repository.
 
 ## Dependency and storage compatibility
 
@@ -53,13 +55,26 @@ There is no committed cross-platform lockfile in this experimental release; rele
 
 Pool isolation and priority/FIFO scheduling exist; DAG dependencies, user-configurable queue policies, reservations/preemption and generic `feat_*` extensions are not implemented. Prefer tests and explicit fallbacks over claims that the algorithm inferred invisible constraints. See [source contracts](contracts.md) and [measured limitations](observations.md).
 
-## Manual release procedure
+## Release and PR policy
 
-The 0.2.0 preview was historically published using GitHub Actions.
-Those workflows are now removed. Future versions require local
-`bash scripts/local_check.sh full` and explicitly requested
-`bash scripts/local_check.sh docker`, independent accuracy evidence,
-version and schema review, and authorization for manual GitHub
-release publication. Do not auto-tag, run hosted CI or publish PyPI.
+`src/vedrfolnir/__init__.py` is the single authoritative package version;
+setuptools derives distribution metadata from its `__version__` literal and
+FastAPI uses the same value. Change that source value for each release and
+reinstall the package before checking metadata equality.
+
+Use Conventional Commits for PR titles and commit subjects, preferably one
+line with no body. Current history uses `feat:`, `test:`, `build:`, `docs:`
+and `chore:` prefixes. Release engineering may also use `ci:`, `security:`
+and `release:`. Squash subjects must retain the PR's conventional title;
+GitHub-generated merge commits are allowed.
+
+The first candidate is `0.3.0rc1` / tag `v0.3.0rc1`. Hosted CI and future
+PyPI/GHCR publishing are authorized directions, but require their own
+qualification and protection milestones. Publication will run only from
+explicit, protected release tags with environment approval, never from PR
+contexts or arbitrary merges. No tag or publication is created by this PR.
+See the [release contract](release-contract.md) for platforms, image flavors,
+artifact names, tags and gates. Local quick/full checks and Docker smoke
+remain required evidence alongside future hosted checks.
 
 See [validation](validation.md) and [roadmap](roadmap.md).

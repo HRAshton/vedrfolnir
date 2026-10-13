@@ -12,7 +12,11 @@ The included query mappings match `dbo.EtaDemoJobs`, `dbo.EtaDemoPlans`, and
 - Active or recently completed plans for delayed outcome labeling.
 - An optional declared two-slot runner pool.
 
-To run with Compose, set `SOURCE_MODE=mssql`, `INSTALL_MSSQL=true`,
+The planned official demo/CSV image omits the MSSQL driver. This is an
+optional source-build route; it requires separate integration validation
+and does not establish official SQL Server support.
+
+To run with source-build Compose, set `SOURCE_MODE=mssql`, `INSTALL_MSSQL=true`,
 `SQL_QUERY_PATH=./examples/quickstart/sqlserver/queries` and configure the
 `MSSQL_*` connection variables in private `.env`. Build and preflight with
 `docker compose run --rm vedrfolnir vedrfolnir-check-source --mode mssql

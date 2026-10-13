@@ -89,8 +89,8 @@ The crash test verifies SQLite transaction recovery for this local file/WAL
 configuration, not arbitrary storage hardware/power failures.
 
 No accuracy retuning, new independent accuracy benchmark, GitHub Actions,
-release/tag, deployment or publication to PyPI was performed. The published
-v0.2.0 tag and package version are unchanged.
+release/tag, deployment or publication to PyPI was performed. The historical
+v0.2.0 tag and package version in the old repository were unchanged.
 
 
 ## Follow-up: bounded late-history recovery

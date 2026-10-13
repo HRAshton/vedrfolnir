@@ -2,7 +2,7 @@
 
 [← Documentation](README.md) · [Preview notes](releases/v0.2.0.md) · [Results](observations.md)
 
-## 0.2.0  -  experimental preview
+## 0.2.0  -  historical experimental preview (old repository)
 
 Usable by early adopters for experiments, **not production ETA promises**.
 Release gate: Python 3.15 tests and package build, Docker demo and
@@ -48,9 +48,11 @@ input evidence.
 
 ## Local execution and acceptance criteria
 
-Each milestone requires **locally executed**
-Python 3.15 checks and a report of actual commands, commit SHA, error
-statistics and limitations - not a GitHub Actions check.
+Each accuracy milestone requires executed Python 3.15 checks and a report
+of actual commands, commit SHA, error statistics and limitations. Hosted CI
+is planned for automated regression and packaging checks; passing CI alone
+does not establish accuracy. The [release contract](release-contract.md)
+defines the separate distribution gates for the first `0.3.0rc1` candidate.
 
 | Priority | Work package | Local acceptance evidence |
 |---|---|---|
@@ -70,5 +72,5 @@ The independent October 12 research run had 29 scored Snakemake
 **task-span** first forecasts, 0 scheduler-eligible; a single StreamFlow
 full-timeline plan, 0 eligible; and 40 scored synthetic CSV plans with
 admission observed but still 0 eligible. This is an observability
-investigation, **not evidence of scheduler improvement**. Published v0.2.0
-is unchanged.
+investigation, **not evidence of scheduler improvement**. Historical v0.2.0
+publication refers to the old repository; the recreated repository has no releases yet.

@@ -85,7 +85,7 @@ chart readability and CSV download in a real browser before release.
 | Real queued-job accuracy and job uncertainty | Not established by this fixture |
 
 No GitHub Actions, release tag, PyPI upload or deployment was dispatched.
-The published v0.2.0 tag and package version remain unchanged. Complete the
+The historical v0.2.0 tag and package version in the old repository remained unchanged. Complete the
 image lifecycle and real-browser checks before marking an experimental RC
 ready. A real pilot should verify queue-policy/source assumptions and collect
 prospective observations, with private records kept outside source control.
