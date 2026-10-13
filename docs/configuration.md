@@ -46,6 +46,9 @@ The default Docker Compose configuration maps `ETA_POOL_CAPACITY_REFRESH_SECONDS
 | `./examples/data` | `/srv/examples/data` (read-only) | File-source CSV |
 | `./logging` | `/srv/logging` (read-only) | Optional trusted logging config |
 
+The planned official demo/CSV image omits the MSSQL driver; see the
+[release contract](release-contract.md). The following options apply to source builds.
+
 To use a different CSV directory in Docker, change the bind mount to point to it. To connect MSSQL, set `INSTALL_MSSQL=true` and rebuild. The source database is accessed through read-only SELECT queries; the *application* state remains SQLite.
 
 **Caution:** source switches (`demo` → `files` / `mssql`) require separate application databases/volumes to prevent synthetic history mixing with real observations. `docker compose down -v` destroys the application volume; it is not a routine restart.
@@ -99,7 +102,7 @@ Container paths (`CSV_DATA_DIR`, `MSSQL_QUERY_DIR`) do not change.
 A mount change requires recreating the service container; use distinct
 SQLite volumes per source mode, not `docker compose down -v`.
 
-## Local Python CLI (0.3.0)
+## Local Python CLI (0.3.0rc1 candidate)
 
 From the repository checkout on CPython 3.15:
 

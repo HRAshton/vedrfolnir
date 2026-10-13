@@ -20,7 +20,7 @@ Vedrfolnir is an **experimental single-host** build/workflow ETA service. Start 
 | Deploy responsibly, back up or debug | [Operations](operations.md) |
 | Change the code / run test suite | [Development](development.md) |
 | Run local verification | [Development](development.md), [validation](validation.md) |
-| See 0.2.0 preview notes and future gates | [Release notes](releases/v0.2.0.md), [roadmap](roadmap.md) |
+| See candidate support and release gates | [Release contract](release-contract.md), [candidate notes](releases/v0.3.0.md), [roadmap](roadmap.md) |
 
 **Contract stability:** Only the documented core aliases and optional pool aliases are implemented. Arbitrary `feat_num_*` / `feat_cat_*` dynamic feature decoding, dependency DAG ingestion and configurable queue policies are **not implemented**.
 

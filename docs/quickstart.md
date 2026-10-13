@@ -2,14 +2,19 @@
 
 [← Documentation](README.md) · [Source contract](contracts.md) · [Operations](operations.md)
 
-**Docker build note:** as of the October 2026 preview, Docker Hub has
-not yet published `python:3.15-slim`. The Dockerfile therefore builds the
-stable CPython 3.15.0 source archive with a pinned SHA-256 checksum in
-a dedicated builder stage. The first image build is more CPU-intensive;
+**Current source-build route:** the Dockerfile builds CPython 3.15.0
+from a source archive with a pinned SHA-256 checksum in a dedicated builder
+stage. The first image build is more CPU-intensive;
 subsequent local builds can reuse the Docker cache. No release-candidate
 Python interpreter is substituted.
 
 Vedrfolnir needs **Docker + Compose v2** for the container route, or **CPython 3.15** for the local route. It stores model state, predictions and imported history in its **own SQLite database**. MSSQL is a **read-only input source**, not the application database.
+
+The first candidate `0.3.0rc1` is unreleased. Future PyPI installs and
+prebuilt GHCR deployment will be documented after qualification; the commands
+below use a source checkout. The planned official image supports Linux/amd64
+and demo/CSV, without the MSSQL driver. See the
+[release contract](release-contract.md) for support and publication gates.
 
 ## A. Run the synthetic demo
 
@@ -97,7 +102,11 @@ little live activity. For direct Python runs, set
 `docker compose down` preserves state; `down -v` destroys it.
 Use [backup/restore guidance](operations.md) before changing storage.
 
-## C. Connect SQL Server (read-only)
+## C. Connect SQL Server (read-only, optional source build)
+
+MSSQL is outside the initial official image support contract. Install
+`.[mssql]` for local Python or rebuild with `INSTALL_MSSQL=true`; the driver
+alone does not establish compatibility with your SQL Server deployment.
 
 SQL Server supplies input only: SQLite remains the application database.
 The [SQL Server example](../examples/quickstart/sqlserver/README.md)
