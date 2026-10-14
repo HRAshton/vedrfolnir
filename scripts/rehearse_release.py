@@ -45,7 +45,12 @@ def main(version, image):
         raise ValueError("Consumer rehearsal requires stable CPython 3.15")
     if not re.fullmatch(r"ghcr\.io/hrashton/vedrfolnir@sha256:[0-9a-f]{64}", image):
         raise ValueError("Expected a canonical immutable GHCR image digest")
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    # Execute the verifier from protected master; resolve the published tag
+    # only as data, never as source code to check out or run.
+    sha = subprocess.check_output(
+        ["git", "rev-parse", f"refs/tags/v{version}^{{commit}}"], text=True
+    ).strip()
+    subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"], check=True)
     with tempfile.TemporaryDirectory(prefix="consumer-rehearsal-") as folder:
         root = Path(folder)
         subprocess.run(["gh", "release", "download", "v" + version, "--repo", REPOSITORY,

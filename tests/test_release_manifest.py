@@ -67,3 +67,18 @@ def test_script_never_constructs_paths_from_untrusted_manifest_names():
     assert "asset = root / name" not in script
     assert "downloaded = {asset.name: asset for asset in root.iterdir()" in script
     assert 'downloaded.keys() != manifest["artifacts"].keys()' in script
+
+
+def test_rehearsal_executes_default_branch_code_not_user_selected_tag():
+    from pathlib import Path
+
+    workflow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/release.yml").read_text(encoding="utf-8")
+    consumer = workflow.split("  consumer-rehearsal:\n", 1)[1]
+    assert "github.ref == 'refs/heads/master'" in consumer
+    assert "ref: v${{ inputs.version }}" not in consumer
+    assert "fetch-depth: 0" in consumer
+    script = (Path(__file__).resolve().parents[1] /
+              "scripts/rehearse_release.py").read_text(encoding="utf-8")
+    assert 'f"refs/tags/v{version}^{{commit}}"' in script
+    assert '["git", "merge-base", "--is-ancestor", sha, "HEAD"]' in script

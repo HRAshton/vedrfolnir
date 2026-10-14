@@ -17,7 +17,9 @@ published canonical `image` digest. Dispatch performs a **read-only consumer
 rehearsal**; it cannot enter publishing jobs. It checks downloaded GitHub asset
 hashes/sizes, manifest/source identity, package and OCI attestations, public PyPI
 wheel bytes, a fresh PyPI install/CLI/API, and pulled demo/CSV image persistence,
-backup/restore and shutdown. It checks the actual tagged source, not a later master.
+backup/restore and shutdown. The verifier runs from protected `master`
+and checks the published manifest's source SHA against the resolved immutable tag.
+It does not run project code checked out from dispatch-selected tags.
 
 Remaining manual gates: review README/consumer Compose commands against the
 published version/digest; test authentication/public exposure and writable mounts;
