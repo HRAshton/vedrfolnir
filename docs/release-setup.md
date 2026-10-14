@@ -38,6 +38,17 @@ verify package visibility and repository linking with the owner. Establish the
 namespace before the first protected release if missing-tag inspection cannot
 distinguish authentication failures from absence.
 
+If the GHCR package does not exist, merge the bootstrap workflow and dispatch
+**Bootstrap GHCR package** from `master` in Actions. It builds protected-master
+source with read-only permissions, then pushes only `:bootstrap` in an isolated
+job using the repository's `GITHUB_TOKEN` with `packages: write`; no extra PAT is
+required. The source label links the package to this repository. This is registry
+setup, not a versioned release or a qualified distribution. Subsequent dispatches
+refresh only the bootstrap tag. After the first push, open the package settings,
+set visibility to **Public**, and confirm Actions access for this repository is
+**Write**. GHCR initially creates private packages even for public repositories.
+Then proceed with the protected version-tag release workflow.
+
 The single release workflow builds/tests with read-only rights, transfers exact
 qualified package/image artifacts, and separates approved jobs for OCI upload,
 pulled-digest smoke, PyPI OIDC and GitHub Release publication. Privileged package
