@@ -253,8 +253,81 @@ jobs:
           python scripts/release_smoke.py --pull --image "ghcr.io/hrashton/vedrfolnir@$DIGEST"
         env:
           DIGEST: ${{ needs.image.outputs.digest }}
+  sbom:
+    needs: [authorize, image, pulled-image]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-packages
+          path: dist
+      - run: cd dist && sha256sum -c SHA256SUMS
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ghcr.io/hrashton/vedrfolnir@${{ needs.image.outputs.digest }}
+          format: spdx-json
+          output-file: dist/container.spdx.json
+          dependency-snapshot: false
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Manifest and checksums for exact release assets
+        env:
+          VERSION: ${{ needs.authorize.outputs.version }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+          IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          python - <<'PYTHON'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path('dist')
+          files = sorted(root.glob('*.whl')) + sorted(root.glob('*.tar.gz')) + [root / 'container.spdx.json', root / 'qualification.json']
+          artifacts = {file.name: {'sha256': hashlib.sha256(file.read_bytes()).hexdigest(), 'size': file.stat().st_size} for file in files}
+          manifest = {'version': os.environ['VERSION'], 'source_sha': os.environ['SOURCE_SHA'], 'image': 'ghcr.io/hrashton/vedrfolnir@' + os.environ['IMAGE_DIGEST'], 'artifacts': artifacts}
+          (root / 'release-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PYTHON
+          cd dist
+          sha256sum -- *.whl *.tar.gz container.spdx.json release-manifest.json qualification.json > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-assets
+          path: dist/*
+          if-no-files-found: error
+  attest:
+    needs: [authorize, image, sbom]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets
+          path: dist
+      - run: cd dist && sha256sum -c SHA256SUMS
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: dist/*
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ghcr.io/hrashton/vedrfolnir
+          subject-digest: ${{ needs.image.outputs.digest }}
+          push-to-registry: true
+      - uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-name: ghcr.io/hrashton/vedrfolnir
+          subject-digest: ${{ needs.image.outputs.digest }}
+          sbom-path: dist/container.spdx.json
+          push-to-registry: true
   pypi:
-    needs: [qualify, pulled-image]
+    needs: [qualify, pulled-image, attest]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -262,7 +335,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: qualified-packages
+          name: release-assets
           path: dist
       - run: |
           cd dist
@@ -273,7 +346,7 @@ jobs:
         with:
           packages-dir: publish
   github-release:
-    needs: [authorize, image, pulled-image, pypi]
+    needs: [authorize, image, pulled-image, pypi, attest]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -281,7 +354,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: qualified-packages
+          name: release-assets
           path: dist
       - env:
           GH_TOKEN: ${{ github.token }}
@@ -292,11 +365,11 @@ jobs:
         run: |
           cd dist
           sha256sum -c SHA256SUMS
-          printf 'Experimental Linux/amd64, CPython 3.15, demo/CSV, one worker/SQLite instance. MSSQL and production ETA accuracy are unqualified.\n\nSource: %s\nPackage: %s\nImage: ghcr.io/hrashton/vedrfolnir@%s\n\nVerify SHA256SUMS and immutable image digest. See the release contract and operations guide.\n' "$SOURCE_SHA" "$VERSION" "$DIGEST" > notes.md
+          printf 'Experimental Linux/amd64, CPython 3.15, demo/CSV, one worker/SQLite instance. MSSQL and production ETA accuracy are unqualified.\n\nSource: %s\nPackage: %s\nImage: ghcr.io/hrashton/vedrfolnir@%s\n\nVerify SHA256SUMS, release-manifest.json and gh attestation verify for package files/OCI digest. SBOM: container.spdx.json. PyPI OIDC provides its own package attestations. See the release contract and operations guide.\n' "$SOURCE_SHA" "$VERSION" "$DIGEST" > notes.md
           python -c 'import json; q=json.load(open("qualification.json")); print("\nQualification run:", q["run_url"]); print("Python:", q["python"]); print("River:", q["river"]); print("Executed checks:", ", ".join(q["checks"]))' >> notes.md
           flags=()
           if [[ "$VERSION" == *rc* ]]; then flags+=(--prerelease --latest=false); fi
-          gh release create "$TAG" --repo HRAshton/vedrfolnir --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" -- *.whl *.tar.gz SHA256SUMS qualification.json
+          gh release create "$TAG" --repo HRAshton/vedrfolnir --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" -- *.whl *.tar.gz SHA256SUMS container.spdx.json release-manifest.json qualification.json
   promote:
     needs: [authorize, image, github-release]
     if: ${{ !contains(needs.authorize.outputs.version, 'rc') }}
