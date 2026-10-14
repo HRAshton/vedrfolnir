@@ -20,6 +20,7 @@ Vedrfolnir is an **experimental single-host** build/workflow ETA service. Start 
 | Configure repository protections and Renovate | [Security setup](security-setup.md) |
 | Deploy responsibly, back up or debug | [Operations](operations.md) |
 | Change the code / run test suite | [Development](development.md) |
+| Rehearse a published release as a consumer | [RC rehearsal](rc-rehearsal.md) |
 | Verify checksums, provenance and image SBOM | [Verification](verification.md) |
 | Configure approved release publishing | [Release setup](release-setup.md) |
 | Qualify prebuilt images and consumer Compose | [Container distribution](container-distribution.md) |
