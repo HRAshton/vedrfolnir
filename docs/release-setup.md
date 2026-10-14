@@ -51,5 +51,7 @@ commit. The initial pipeline deliberately fails on an existing image tag rather
 than attempting unsafe recovery. Test retries on disposable rehearsal artifacts.
 
 Owner settings, PyPI publisher and actual publication are pending gates. This
-workflow is not a claim that an RC has been published. Supply-chain attestations,
-SBOM and consumer verification are added by the next PRs before any public RC.
+workflow is not a claim that an RC has been published. The release workflow now
+generates an image SBOM and attests exact package and image identities before
+PyPI/GitHub publication. Follow [verification](verification.md) and complete
+the consumer rehearsal before declaring the RC qualified.
