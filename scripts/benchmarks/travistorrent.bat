@@ -8,5 +8,6 @@ if not exist ".venv\Scripts\python.exe" (
 if errorlevel 1 (
   .venv\Scripts\python.exe -m pip install -e . || exit /b 1
 )
-.venv\Scripts\python.exe -m vedrfolnir.benchmark_travistorrent %*
+if not exist ".venv\Scripts\vedrfolnir-travistorrent.exe" .venv\Scripts\python.exe -m pip install -e . || exit /b 1
+.venv\Scripts\vedrfolnir-travistorrent.exe %*
 exit /b %errorlevel%

@@ -31,7 +31,7 @@ class MSSQLSource:
         try:
             import pymssql
         except ImportError as exc:
-            raise RuntimeError("Install optional SQL Server support: pip install -r requirements-mssql.txt (Docker: INSTALL_MSSQL=true)") from exc
+            raise RuntimeError("Install optional SQL Server support: pip install '.[mssql]' (Docker: INSTALL_MSSQL=true)") from exc
         conn = pymssql.connect(
             server=os.environ["MSSQL_HOST"],
             user=os.environ["MSSQL_USER"],
