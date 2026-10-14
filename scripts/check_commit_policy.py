@@ -33,6 +33,9 @@ def check(event_name, event):
     errors = []
     if event_name == "pull_request" and not valid_subject(event["pull_request"]["title"]):
         errors.append("PR title must be a Conventional Commit subject")
+    # PR metadata edits do not change commits; recheck the title without git history.
+    if event_name == "pull_request" and event.get("action") == "edited":
+        return errors
     revisions = revision_range(event_name, event)
     # GitHub-generated merge subjects are allowed; squash subjects must be conventional.
     result = subprocess.run(

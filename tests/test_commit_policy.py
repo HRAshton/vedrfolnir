@@ -47,3 +47,14 @@ def test_merge_commit_is_allowed_but_bad_feature_commit_fails(tmp_path, monkeypa
     assert check("push", {"before": base, "after": head}) == [
         "Invalid commit subject: bad feature subject",
     ]
+
+
+@pytest.mark.parametrize(("title", "expected"), [
+    ("fix: valid PR title", []),
+    ("Invalid PR title", ["PR title must be a Conventional Commit subject"]),
+])
+def test_edited_pr_validates_title_without_rechecking_commits(monkeypatch, title, expected):
+    def no_git(*args, **kwargs):
+        pytest.fail("Metadata edits must not rerun commit history validation")
+    monkeypatch.setattr("scripts.check_commit_policy.subprocess.run", no_git)
+    assert check("pull_request", {"action": "edited", "pull_request": {"title": title}}) == expected
