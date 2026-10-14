@@ -1,4 +1,4 @@
-# Vedrfolnir
+# Veðrfölnir
 
 **Self-hosted build/workflow completion ETA** for queued and concurrent jobs.
 Historical durations, observed runner capacity and priority/FIFO queue replay
