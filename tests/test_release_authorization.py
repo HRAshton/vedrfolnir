@@ -15,34 +15,16 @@ def test_invalid_tag_identity(tag, version):
         validate_tag(tag, version)
 
 
-def test_protection_requires_actual_enforcement_and_reviewers():
-    branch = [{"type": t} for t in ["pull_request", "required_status_checks", "deletion", "non_fast_forward"]]
-    next(rule for rule in branch if rule["type"] == "required_status_checks")["parameters"] = {
-        "required_status_checks": [{"context": name} for name in [
-            "Python and package validation", "Shell and workflow validation", "Dependency review",
-            "Python vulnerability audit", "Container qualification"]]}
-    tags = [{"target": "tag", "enforcement": "active", "bypass_actors": [],
-             "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
-             "rules": [{"type": "update"}, {"type": "deletion"}]}]
-    environment = {"protection_rules": [{"type": "required_reviewers", "reviewers": [{"id": 1}]}]}
-    validate_protections(branch, tags, environment)
-    for values in [(branch, [], environment), ([], tags, environment), (branch, tags, {})]:
-        with pytest.raises(ValueError):
-            validate_protections(*values)
-    tags[0]["bypass_actors"] = [{"actor_id": 1}]
-    with pytest.raises(ValueError):
-        validate_protections(branch, tags, environment)
-
 
 def verified_release_protections():
-    branch = [{"type": rule} for rule in
+    branch = [{"type": kind} for kind in
               ["pull_request", "required_status_checks", "deletion", "non_fast_forward"]]
     branch[1]["parameters"] = {"required_status_checks": [{"context": name} for name in [
         "Python and package validation", "Shell and workflow validation",
         "Dependency review", "Python vulnerability audit", "Container qualification",
     ]]}
     tags = [{
-        "target": "tag", "enforcement": "active", "bypass_actors": [],
+        "id": 42, "target": "tag", "enforcement": "active", "bypass_actors": [],
         "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
         "rules": [{"type": "update"}, {"type": "deletion"}],
     }]
@@ -50,40 +32,84 @@ def verified_release_protections():
     return branch, tags, environment
 
 
+def load_auditor():
+    """Test the exact inline verifier without running a secret-bearing job."""
+    import textwrap
+    from pathlib import Path
+    workflow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/release.yml").read_text(encoding="utf-8")
+    marker = "          python - <<'RULESET_AUDIT'\n"
+    end = "\n          RULESET_AUDIT\n"
+    assert workflow.count(marker) == 1
+    source = textwrap.dedent(workflow.split(marker, 1)[1].split(end, 1)[0])
+    namespace = {"__name__": "_auditor_under_test"}
+    exec(compile(source, "release.yml:verify-tag-rules", "exec"), namespace)
+    return namespace["verify_rulesets"]
+
+
+def test_read_only_authorization_checks_structure_with_redacted_bypass():
+    branch, tags, environment = verified_release_protections()
+    del tags[0]["bypass_actors"]
+    validate_protections(branch, tags, environment)
+    for case in [(branch, [], environment), ([], tags, environment), (branch, tags, {})]:
+        with pytest.raises(ValueError):
+            validate_protections(*case)
+
+
+def test_privileged_auditor_accepts_verified_empty_bypasses():
+    _, tags, _ = verified_release_protections()
+    assert load_auditor()(tags, lambda identifier: tags[0]) == 1
+
+
 @pytest.mark.parametrize("redacted", [
-    "missing", None, False, "", {}, 0,
+    "missing", None, False, "", {}, 0, [{"actor_id": 1}],
 ])
-def test_tag_ruleset_bypass_must_be_explicitly_verified(redacted):
-    branch, tags, environment = verified_release_protections()
-    if redacted == "missing":
-        del tags[0]["bypass_actors"]
-    else:
-        tags[0]["bypass_actors"] = redacted
-    with pytest.raises(ValueError, match="Cannot verify tag ruleset bypass_actors"):
-        validate_protections(branch, tags, environment)
-
-
-def test_explicit_empty_bypass_list_allows_verified_tag_ruleset():
-    validate_protections(*verified_release_protections())
-
-
-def test_nonempty_bypass_list_cannot_authorize_release():
-    branch, tags, environment = verified_release_protections()
-    tags[0]["bypass_actors"] = [{"actor_id": 1, "actor_type": "User"}]
-    with pytest.raises(ValueError, match="without bypasses"):
-        validate_protections(branch, tags, environment)
-
-
-def test_second_matching_redacted_ruleset_cannot_be_ignored():
+def test_privileged_auditor_rejects_unknown_or_nonempty_bypasses(redacted):
     from copy import deepcopy
+    _, tags, _ = verified_release_protections()
+    detail = deepcopy(tags[0])
+    if redacted == "missing":
+        del detail["bypass_actors"]
+    else:
+        detail["bypass_actors"] = redacted
+    with pytest.raises(ValueError, match="bypass"):
+        load_auditor()(tags, lambda identifier: detail)
 
-    branch, tags, environment = verified_release_protections()
-    unknown = deepcopy(tags[0])
-    del unknown["bypass_actors"]
-    tags.append(unknown)
-    with pytest.raises(ValueError, match="Cannot verify tag ruleset bypass_actors"):
-        validate_protections(branch, tags, environment)
 
+def test_privileged_auditor_rejects_second_redacted_ruleset():
+    from copy import deepcopy
+    _, tags, _ = verified_release_protections()
+    hidden = deepcopy(tags[0])
+    hidden["id"] = 43
+    del hidden["bypass_actors"]
+    tags.append(hidden)
+    with pytest.raises(ValueError, match="bypass"):
+        load_auditor()(tags, lambda identifier: tags[identifier - 42])
+
+
+def test_privileged_auditor_rejects_incomplete_rule_or_listing():
+    from copy import deepcopy
+    _, tags, _ = verified_release_protections()
+    detail = deepcopy(tags[0])
+    detail["rules"] = [{"type": "deletion"}]
+    with pytest.raises(ValueError, match="No verified"):
+        load_auditor()(tags, lambda identifier: detail)
+    with pytest.raises(ValueError, match="pagination"):
+        load_auditor()(tags * 100, lambda identifier: tags[0])
+
+
+def test_sensitive_job_is_environment_gated_and_blocks_qualification():
+    from pathlib import Path
+    workflow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/release.yml").read_text(encoding="utf-8")
+    job = workflow.split("  verify-tag-rules:\n", 1)[1].split("  qualify:\n", 1)[0]
+    assert "    needs: authorize\n" in job
+    assert "    environment: release-ruleset-audit\n" in job
+    assert "    permissions: {}\n" in job
+    assert "actions/checkout" not in job and "uses:" not in job
+    assert "secrets.RELEASE_RULESET_AUDIT_TOKEN" in job
+    assert workflow.count("secrets.RELEASE_RULESET_AUDIT_TOKEN") == 1
+    assert "  qualify:\n    needs: [authorize, verify-tag-rules]\n" in workflow
 
 def test_annotated_and_lightweight_event_shas_resolve_same_commit(tmp_path, monkeypatch):
     import subprocess

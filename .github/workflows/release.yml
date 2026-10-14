@@ -32,8 +32,98 @@ jobs:
         run: python scripts/validate_release.py
         env:
           GH_TOKEN: ${{ github.token }}
-  qualify:
+  verify-tag-rules:
+    name: Verify release tag rulesets
     needs: authorize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: release-ruleset-audit
+    permissions: {}
+    steps:
+      # Isolated, reviewer-gated ruleset credential: never checkout or run project code.
+      - name: Verify immutable tags and absence of bypass actors
+        env:
+          RELEASE_RULESET_AUDIT_TOKEN: ${{ secrets.RELEASE_RULESET_AUDIT_TOKEN }}
+        run: |
+          python - <<'RULESET_AUDIT'
+          """Verify live release-tag bypass settings without executing project code."""
+          import json
+          import os
+          import re
+          from urllib.request import Request, urlopen
+          
+          REPO = "HRAshton/vedrfolnir"
+          API = "https://api.github.com/repos/" + REPO
+          
+          
+          def verify_rulesets(listing, get_ruleset):
+              if not isinstance(listing, list) or len(listing) >= 100:
+                  raise ValueError("Cannot completely enumerate rulesets without pagination")
+              found = False
+              visited = set()
+              for summary in listing:
+                  if not isinstance(summary, dict):
+                      raise ValueError("Malformed repository ruleset summary")
+                  if summary.get("target") != "tag":
+                      continue
+                  identifier = summary.get("id")
+                  if type(identifier) is not int or identifier < 1 or identifier in visited:
+                      raise ValueError("Invalid or duplicate tag ruleset identifier")
+                  visited.add(identifier)
+                  rule = get_ruleset(identifier)
+                  if (not isinstance(rule, dict)
+                          or rule.get("id") != identifier or rule.get("target") != "tag"):
+                      raise ValueError("Cannot verify the retrieved tag ruleset identity")
+                  if rule.get("enforcement") != "active":
+                      continue
+                  # Check every active tag ruleset, including inherited ones.
+                  if type(rule.get("bypass_actors")) is not list:
+                      raise ValueError("Tag ruleset bypass_actors is missing or redacted")
+                  if rule["bypass_actors"]:
+                      raise ValueError("Active tag ruleset has bypass actors")
+                  conditions = rule.get("conditions", {}).get("ref_name", {})
+                  rules = rule.get("rules", [])
+                  if (isinstance(conditions, dict)
+                          and "refs/tags/v*" in conditions.get("include", [])
+                          and conditions.get("exclude") == []
+                          and isinstance(rules, list)
+                          and {"update", "deletion"} <= {
+                              item.get("type") for item in rules if isinstance(item, dict)
+                          }):
+                      found = True
+              if not found:
+                  raise ValueError("No verified active immutable v* tag ruleset")
+              return len(visited)
+          
+          
+          def main():
+              if os.environ.get("GITHUB_REPOSITORY") != REPO:
+                  raise ValueError("Only the canonical repository may publish")
+              if not re.fullmatch(r"refs/tags/v[0-9][0-9A-Za-z.]*", os.environ.get("GITHUB_REF", "")):
+                  raise ValueError("Release requires a version tag")
+              token = os.environ.get("RELEASE_RULESET_AUDIT_TOKEN", "")
+              if not token:
+                  raise ValueError("Missing protected RELEASE_RULESET_AUDIT_TOKEN credential")
+          
+              def get(path):
+                  request = Request(API + path, headers={
+                      "Authorization": "Bearer " + token,
+                      "Accept": "application/vnd.github+json",
+                  })
+                  with urlopen(request, timeout=30) as response:
+                      return json.load(response)
+          
+              listing = get("/rulesets?per_page=100&includes_parents=true")
+              count = verify_rulesets(listing, lambda ident: get(
+                  "/rulesets/" + str(ident) + "?includes_parents=true"))
+              print(f"Verified release tag protection; {count} tag rulesets inspected")
+          
+          
+          if __name__ == "__main__":
+              main()
+          RULESET_AUDIT
+  qualify:
+    needs: [authorize, verify-tag-rules]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

@@ -9,14 +9,26 @@ settings and fails if protections/reviewers are absent or inaccessible. It also
 requires the tag/version/source SHA to match a commit reachable from `master`.
 No PR or arbitrary branch push publishes.
 
-**Bypass verification is fail-closed.** GitHub returns the `bypass_actors`
-field only to API callers with write access to the ruleset. The authorization
-guard requires that field to be present and exactly `[]` for the matching
-immutable `v*` tag ruleset. A normal read-only `GITHUB_TOKEN` can receive a
-redacted response and will therefore **block release**, even when the ruleset
-has no bypass actors. A secure, independently authorized verification mechanism
-must be arranged before publishing; do not treat missing data as an empty list
-or grant repository administration write access to untrusted release code.
+**Release ruleset verification requires a protected credential.** GitHub
+returns `bypass_actors` only to callers with write access to the ruleset.
+Create a separate GitHub Actions environment named `release-ruleset-audit`
+with required reviewers and deployments restricted to `v*` tags. Create a
+short-lived fine-grained PAT limited to repository `HRAshton/vedrfolnir`
+with repository `Administration: write` access, and store it solely as
+the environment secret `RELEASE_RULESET_AUDIT_TOKEN`. Rotate on expiry.
+Never put this credential in a repository-wide secret.
+
+The read-only `authorize` job validates the tag, source commit and
+structural branch, tag, check and environment protections. A separate job
+`verify-tag-rules` has approval-gated access to the stronger token.
+It runs only reviewed inline Python (no checkout, dependencies or external
+actions), verifies live tag rulesets including inherited ones, and refuses
+missing, redacted, malformed or nonempty bypass lists. It does not print the
+credential or the bypass list. `qualify` requires both jobs to pass;
+all publication depends on `qualify`. Missing/expired/unauthorized
+credentials fail closed. The strong credential is never supplied to a build or
+publish job. Review release-workflow changes and restrict environment reviewers,
+because workflow code is part of this trust boundary.
 
 Confirm/control the PyPI name immediately before configuring Trusted Publishing
 for owner `HRAshton`, repository `vedrfolnir`, workflow `release.yml`, environment
