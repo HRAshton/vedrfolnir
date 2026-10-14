@@ -30,7 +30,7 @@ def test_release_version_is_consistent():
 
 
 def test_release_csv_fixture_matches_source_contract(tmp_path):
-    from scripts.release_smoke import make_csv_fixture
+    from scripts.fixtures import make_csv_fixture
     make_csv_fixture(tmp_path)
     report = validate_source(CSVSource(tmp_path))
     assert report["ok"], report
