@@ -57,8 +57,17 @@ def qualify(dist, build=True, mssql=False):
         subprocess.run([sys.executable, "-m", "build", "--outdir", str(dist)], check=True)
     wheel = dist / f"vedrfolnir-{__version__}-py3-none-any.whl"
     sdist = dist / f"vedrfolnir-{__version__}.tar.gz"
-    assert sorted(p.name for p in dist.iterdir()) == sorted([wheel.name, sdist.name])
+    manifest = dist / "SHA256SUMS"
+    expected_files = {wheel.name, sdist.name}
+    if manifest.exists():
+        expected_files.add(manifest.name)
+    assert {p.name for p in dist.iterdir()} == expected_files, "Unexpected distribution files"
     hashes = {p.name: audit_artifact(p, __version__) for p in (wheel, sdist)}
+    checksum_text = "".join(f"{digest}  {name}\n" for name, digest in hashes.items())
+    if manifest.exists():
+        assert (
+            manifest.is_file() and manifest.read_bytes() == checksum_text.encode("ascii")
+        ), "SHA256SUMS does not match the distribution artifacts"
     subprocess.run([sys.executable, "-m", "twine", "check", str(wheel), str(sdist)], check=True)
     verifier = Path(__file__).with_name("verify_distribution.py")
     with tempfile.TemporaryDirectory(prefix="package-qualification-") as folder:
@@ -76,7 +85,7 @@ def qualify(dist, build=True, mssql=False):
             python = environment / "bin/python"
             subprocess.run([str(python), "-m", "pip", "install", f"{wheel}[mssql]"], check=True)
             subprocess.run([str(python), "-c", "import pymssql; print(pymssql.__version__)"], check=True)
-    (dist / "SHA256SUMS").write_text("".join(f"{digest}  {name}\n" for name, digest in hashes.items()))
+    manifest.write_text(checksum_text, encoding="ascii")
     print(json.dumps({"version": __version__, "sha256": hashes, "mssql_install_tested": mssql}))
 
 
