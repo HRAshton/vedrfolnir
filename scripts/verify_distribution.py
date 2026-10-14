@@ -30,6 +30,8 @@ def verify(expected):
     for name in required:
         assert callable(scripts[name].load()), name
     executable = str(Path(sys.executable).with_name("vedrfolnir"))
+    reported = subprocess.check_output([executable, "--version"], text=True).strip()
+    assert reported == f"vedrfolnir {expected}", reported
     with tempfile.TemporaryDirectory(prefix="installed-smoke-") as folder:
         env = dict(os.environ, SOURCE_MODE="demo", ETA_ADMIN_TOKEN=secrets.token_urlsafe(32),
                    ETA_DB_URL=f"sqlite:///{Path(folder) / 'state.sqlite3'}", LOG_CONFIG_FILE="")

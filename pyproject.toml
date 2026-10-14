@@ -24,9 +24,15 @@ dependencies = [
     "river>=0.26.1,<0.27",
 ]
 
+[project.urls]
+Homepage = "https://github.com/HRAshton/vedrfolnir"
+Source = "https://github.com/HRAshton/vedrfolnir"
+Issues = "https://github.com/HRAshton/vedrfolnir/issues"
+Documentation = "https://github.com/HRAshton/vedrfolnir/tree/master/docs"
+
 [project.optional-dependencies]
 mssql = ["pymssql>=2.4.3,<2.5"]
-dev = ["pytest>=8,<10", "ruff>=0.17,<1", "build>=1.2,<2", "setuptools>=75", "wheel", "httpx>=0.28,<1"]
+dev = ["pytest>=8,<10", "ruff>=0.17,<1", "build>=1.2,<2", "setuptools>=75", "wheel", "twine>=6,<7", "httpx>=0.28,<1"]
 
 [project.scripts]
 vedrfolnir = "vedrfolnir.cli:main"
