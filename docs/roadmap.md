@@ -1,14 +1,60 @@
 # Release roadmap and evidence gates
 
-[← Documentation](README.md) · [Preview notes](releases/v0.2.0.md) · [Results](observations.md)
+[← Documentation](README.md) · [Release contract](release-contract.md) · [Results](observations.md)
 
-## 0.2.0  -  historical experimental preview (old repository)
+## Distribution roadmap (revised October 13, 2026)
 
-Usable by early adopters for experiments, **not production ETA promises**.
-Release gate: Python 3.15 tests and package build, Docker demo and
-read-only CSV source startup/API/restart, schema upgrade and SQLite
-backup/restore tests. Version, artifacts and prerelease tag match.
-These checks do not validate an unfamiliar real SQL Server deployment.
+Target: a trustworthy experimental `0.3.0rc1` distribution without a large
+release framework. Keep runtime behavior, migration, chronology, delayed-label,
+retention and restart evidence intact. One concern per PR; prefer existing
+scripts and hosted features. Version-specific notes belong in GitHub Releases.
+
+| Phase | Work / PR title | Gate |
+|---|---|---|
+| 0 | Verify merged CI | Green current `master` run; stable check names, real Python 3.15/River, clean artifact installs; failing regressions fail closed |
+| 1 | `docs: consolidate release notes and contributor guides` | Recursive links/fragments pass; no Markdown-size or per-version-file tests |
+| 3 | `security: protect releases and automate dependency review` | Active branch/tag rulesets, established required checks, dependency updates/review/scans and private disclosure route |
+| 4 | `build: qualify Python distributions` | Confirm PyPI ownership, metadata/content audit, clean wheel/sdist installs and optional-extra checks |
+| 5 | `build: qualify prebuilt container distribution` | Linux/amd64, image-only consumer Compose, exact pulled digest demo/CSV restart/persistence and backup smoke |
+| 6 | `ci: publish approved versioned releases` | One workflow, protected tags/environment, OIDC, least privilege, immutable artifacts, safe partial-failure handling |
+| 7 | `security: attest releases and generate container SBOM` | Checksums, image SBOM and provenance verified against exact artifact/digest identities |
+| 8 | `release: qualify v0.3.0rc1` (or next unused RC) | Approved publication, actual consumer pip/pull rehearsal and persistence/verification; no RC `latest` |
+| 9 | `security: publish OpenSSF Scorecard results` | Weekly restricted job, public authenticated results and SARIF; no perfect-score gate |
+
+Phase 2 is independent optional maintenance: simplify benchmark wrappers only
+when public CLI compatibility is preserved; centralize fixtures/configuration
+only when validation is retained. Neither should delay release for marginal
+cleanup. Do not duplicate the existing CI work or add separate recovery,
+canary and rollback workflows. See the [release contract](release-contract.md)
+for stable rules; per-PR checks remain consistent, with image/release gates on
+relevant changes and every release.
+
+### CI baseline audit
+
+At this audit, [PR #1](https://github.com/HRAshton/vedrfolnir/pull/1) is merged
+at `fde447a94a21cd7e045004e361d706a2b30cb382`.
+[PR #2](https://github.com/HRAshton/vedrfolnir/pull/2) is still open; its head
+`fc7cade6258c577ed4eede780347352ced871eea` has
+[green hosted CI](https://github.com/HRAshton/vedrfolnir/actions/runs/38471381977):
+stable CPython 3.15.0, real River 0.26.1, 231 tests, independent wheel/sdist
+installs and HTTP/resource/entry-point checks. Stable job names are
+**Python and package validation** and **Shell and workflow validation**.
+PR/push triggers have no path filters; the token is read-only, Actions are
+SHA-pinned, checkout credentials are not persisted and the River stub is
+explicitly disabled. The old test forbidding workflows is removed. A local
+intentional-failure probe made the quick gate fail (1 failed, 231 passed).
+
+The live `master` still lacks that workflow and has no push CI run. Therefore
+**green merged-master CI and required-check enforcement remain pending**;
+Phase 1 proceeds stacked on #2. After #2 lands, record its actual merged SHA
+and green `master` run before configuring required checks. Do not interpret
+the roadmap's maintainer-reported merge as verification of a stale snapshot.
+Historical preview context lives in [observations](observations.md#historical-repository-preview).
+
+## Accuracy and operational evidence
+
+Distribution checks do not establish scheduler accuracy. Preserve the following
+research and operational milestones independently of the distribution PRs.
 
 ## 0.3.0  -  multi-job workload accuracy
 
@@ -50,9 +96,9 @@ input evidence.
 
 Each accuracy milestone requires executed Python 3.15 checks and a report
 of actual commands, commit SHA, error statistics and limitations. Hosted CI
-is planned for automated regression and packaging checks; passing CI alone
-does not establish accuracy. The [release contract](release-contract.md)
-defines the separate distribution gates for the first `0.3.0rc1` candidate.
+provides automated regression and packaging checks on its validated PR head;
+passing CI alone does not establish accuracy. The [release contract](release-contract.md)
+defines separate distribution gates.
 
 | Priority | Work package | Local acceptance evidence |
 |---|---|---|

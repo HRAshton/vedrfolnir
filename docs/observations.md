@@ -236,3 +236,16 @@ anything about queue reconstruction. The synthetic CSV's zero
 eligibility **despite recorded admission** is a P0 diagnostic
 question; investigate first-forecast capacity/VM evidence and
 visibility before optimizing River or claiming a queue improvement.
+
+
+## Historical repository preview
+
+The old repository's v0.2.0 notes described an experimental alpha with wheel
+and sdist artifacts, source-build Compose, and no prebuilt image. They did
+not validate external SQL Server integration or production scheduling accuracy.
+Those publication statements refer to the old repository, not releases in the
+recreated `HRAshton/vedrfolnir` repository. Historical measured results above
+and the [experiment reports](experiments/2026-10-13-source-recovery.md) retain
+their original targets and limits. Version-specific publication notes now
+belong in [GitHub Releases](https://github.com/HRAshton/vedrfolnir/releases);
+current support and release gates live in the [release contract](release-contract.md).

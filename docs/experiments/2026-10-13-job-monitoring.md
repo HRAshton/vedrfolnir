@@ -89,3 +89,5 @@ The historical v0.2.0 tag and package version in the old repository remained unc
 image lifecycle and real-browser checks before marking an experimental RC
 ready. A real pilot should verify queue-policy/source assumptions and collect
 prospective observations, with private records kept outside source control.
+
+Historical publication context: [old-repository preview](../observations.md#historical-repository-preview). Current release rules: [release contract](../release-contract.md).
