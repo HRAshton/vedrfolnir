@@ -52,6 +52,8 @@ jobs:
         run: python scripts/check_commit_policy.py
       - name: Full gate (quick tests, simulation, wheel and sdist installs)
         run: bash scripts/local_check.sh full
+      - name: Qualify distribution metadata, contents and optional driver install
+        run: python scripts/qualify_packages.py --dist "$RUNNER_TEMP/qualified-dist" --mssql
       - name: Compile Python sources
         run: python -m compileall -q src simulator scripts tests
 
