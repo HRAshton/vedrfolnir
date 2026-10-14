@@ -1,0 +1,24 @@
+# Consumer route: explicit qualified version/digest, no local build.
+name: vedrfolnir-release
+services:
+  vedrfolnir:
+    image: ${VEDRFOLNIR_IMAGE:?Set VEDRFOLNIR_IMAGE to a qualified GHCR version or digest}
+    restart: unless-stopped
+    user: "10001"
+    environment:
+      SOURCE_MODE: ${SOURCE_MODE:-demo}
+      ETA_DB_URL: sqlite:////data/eta.sqlite3
+      ETA_ADMIN_TOKEN: ${ETA_ADMIN_TOKEN:?Set a unique ETA_ADMIN_TOKEN}
+      CSV_DATA_DIR: /srv/examples/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - vedrfolnir-data:/data
+      - ${CSV_SOURCE_PATH:-./examples/quickstart/csv}:/srv/examples/data:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  vedrfolnir-data: {}
