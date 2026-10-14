@@ -15,6 +15,7 @@ import tempfile
 import time
 
 from scripts import release_smoke as smoke
+from scripts.fixtures import make_csv_fixture
 
 
 def stop(process):
@@ -40,7 +41,7 @@ def main():
         root = Path(folder)
         source = root / "source"
         source.mkdir()
-        smoke.make_csv_fixture(source)
+        make_csv_fixture(source)
         env = dict(os.environ, SOURCE_MODE="files", CSV_DATA_DIR=str(source),
                    ETA_DB_URL=f"sqlite:///{root / 'state.sqlite'}", ETA_ADMIN_TOKEN=smoke.ADMIN_TOKEN,
                    ETA_POLL_SECONDS="2", ETA_PREDICTION_INTERVAL_SECONDS="2",
