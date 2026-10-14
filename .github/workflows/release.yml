@@ -10,7 +10,7 @@ concurrency:
 jobs:
   authorize:
     runs-on: ubuntu-24.04
-    if: github.repository == 'HRAshton/vedrfolnir'
+    if: github.event_name == 'push' && github.repository == 'HRAshton/vedrfolnir'
     permissions:
       contents: read
       actions: read
