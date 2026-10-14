@@ -115,19 +115,22 @@ jobs:
         if: steps.changes.outputs.relevant == 'true'
         with:
           image: vedrfolnir:ci
-          fail-build: true
+          fail-build: false
           severity-cutoff: high
           output-format: json
           output-file: container-audit.json
-      - name: Report actionable image findings
+      - name: Enforce reviewed and expiring vulnerability policy
         if: always() && steps.changes.outputs.relevant == 'true'
         run: |
-          if [[ -f container-audit.json ]]; then
-            python -c 'import json; d=json.load(open("container-audit.json")); print(json.dumps([{"package": m["artifact"]["name"], "version": m["artifact"]["version"], "advisory": m["vulnerability"]["id"], "severity": m["vulnerability"]["severity"], "fix": m["vulnerability"].get("fix")} for m in d["matches"] if m["vulnerability"]["severity"].lower() in {"high", "critical"}], indent=2))'
-          fi
+          python scripts/check_container_audit.py \
+            --audit container-audit.json \
+            --policy security/container-risk-acceptances.json \
+            --decision container-audit-decision.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always() && steps.changes.outputs.relevant == 'true'
         with:
           name: container-vulnerability-audit
-          path: container-audit.json
+          path: |
+            container-audit.json
+            container-audit-decision.json
           if-no-files-found: warn

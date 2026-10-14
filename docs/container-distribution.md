@@ -34,9 +34,22 @@ PR evidence but does not qualify a published digest. Docker is required.
 The CI container job builds and tests relevant code/configuration changes;
 documentation-only PRs report a successful job without paying the image cost.
 The release workflow always qualifies the built and subsequently pulled image.
-Container audit blocks high/critical vulnerabilities; review exceptions with
-expiry rather than silently ignoring them. Base/Python checksum updates require
-review and complete smoke. Other architectures and SQL Server remain unqualified.
+Container scanning always retains the full Grype JSON report. A separate
+risk gate blocks High/Critical findings unless they match an explicit CVE,
+package name, and exact version in
+[`security/container-risk-acceptances.json`](../security/container-risk-acceptances.json).
+Only High findings with no scanner-reported fix and a reviewed unexpired risk
+record are accepted. Critical, newly fixable, new CVEs, changed package
+versions, invalid/expired decisions, different distros or missing scanner data
+fail. The unfiltered report and policy decision are saved as CI artifacts.
+
+Acceptances cover Debian 13's nonroot UID 10001 single-worker demo/CSV
+service: no privileged mounts, nsenter, ACL administration, or untrusted
+Perl/ncurses utility processing. Reassess if these assumptions change.
+Current acceptances expire **2026-10-28**, requiring review and renewal;
+passing the policy is risk acceptance, not a claim of zero vulnerabilities.
+Base/Python checksum updates require review and complete smoke.
+Other architectures and SQL Server remain unqualified.
 
 ## Security-qualified build inputs
 
