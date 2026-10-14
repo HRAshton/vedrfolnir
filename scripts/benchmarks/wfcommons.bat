@@ -8,5 +8,6 @@ if not exist ".venv\Scripts\python.exe" (
 if errorlevel 1 (
   .venv\Scripts\python.exe -m pip install -e . || exit /b 1
 )
-.venv\Scripts\python.exe -m vedrfolnir.benchmark_quickstart %*
+if not exist ".venv\Scripts\vedrfolnir-wfcommons.exe" .venv\Scripts\python.exe -m pip install -e . || exit /b 1
+.venv\Scripts\vedrfolnir-wfcommons.exe %*
 exit /b %errorlevel%

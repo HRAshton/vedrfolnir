@@ -4,6 +4,16 @@
 
 Benchmarks replay *historical timestamps*, **not jobs or Docker containers**. They need no database server, web UI, MSSQL, or GPU. Install **CPython 3.15** dependencies first (`python -m pip install -e .`). These trace evaluators do **not** validate the live pool-aware scheduler. See [observed results](observations.md).
 
+## Canonical installed interfaces
+
+After `python -m pip install .`, use `vedrfolnir-benchmark` for the general
+benchmark engine, `vedrfolnir-travistorrent` for public build-start traces and
+`vedrfolnir-wfcommons` for workflow-start download/replay. The latter two are
+distinct workflows, not aliases for the general engine. Use `--help` to see
+supported options. Python module commands and legacy shell/Windows launchers
+remain compatible; scripts bootstrap a local venv and then call the installed
+entry points. No benchmarking engine or chronology tests are removed.
+
 ## One-click benchmark: TravisTorrent (10,000 real CI builds)
 
 **Windows:** use `scripts/benchmarks/travistorrent.bat` with **Python 3.15** installed.
@@ -12,7 +22,7 @@ Benchmarks replay *historical timestamps*, **not jobs or Docker containers**. Th
 Cross-platform command:
 
 ```bash
-python -m vedrfolnir.benchmark_travistorrent
+vedrfolnir-travistorrent
 ```
 
 The first run uses the [TravisTorrent public Figshare archive](https://figshare.com/articles/dataset/TravisTorrent/19314170)
@@ -26,13 +36,13 @@ No Git, MSSQL, Docker or GPU needed. The runner opens
 Use a previously downloaded `.csv`, `.csv.gz`, or `.zip` containing the official CSV:
 
 ```bash
-python -m vedrfolnir.benchmark_travistorrent --data "C:/path/final-2017-01-25.csv.zip" --offline
+vedrfolnir-travistorrent --data "C:/path/final-2017-01-25.csv.zip" --offline
 ```
 
 Quick diagnostic benchmark, useful before the full 10,000:
 
 ```bash
-python -m vedrfolnir.benchmark_travistorrent --max-builds 1000 --warmup 100 --min-training 50
+vedrfolnir-travistorrent --max-builds 1000 --warmup 100 --min-training 50
 ```
 
 `--max-builds` limits **distinct build IDs**, not source rows. The importer scans the
@@ -71,7 +81,7 @@ Pegasus WfInstances includes **real workflow start timestamps and overall makesp
 Or use the cross-platform CLI after `python -m pip install -e .`:
 
 ```bash
-python -m vedrfolnir.benchmark_quickstart
+vedrfolnir-wfcommons
 ```
 
 The first run downloads the public Pegasus trace collection, then evaluates up to
@@ -89,13 +99,13 @@ Outputs under `benchmark-results/wfcommons-pegasus/`:
 To use a previously downloaded dataset, including on an air-gapped system:
 
 ```bash
-python -m vedrfolnir.benchmark_quickstart --data datasets/WfInstances --offline
+vedrfolnir-wfcommons --data datasets/WfInstances --offline
 ```
 
 For a quicker smoke run:
 
 ```bash
-python -m vedrfolnir.benchmark_quickstart --max-plans 30 --warmup 5 --min-training 5
+vedrfolnir-wfcommons --max-plans 30 --warmup 5 --min-training 5
 ```
 
 `river_used_plans = 0` means the **selected ETA stayed on the baseline**; River may still have been evaluated in **shadow mode** on an eligible subset. Compare `river_only` to `baseline_on_river_subset` on those same items, not to the all-workflow baseline. No selections alone are not evidence of better ML accuracy. Smaller trace subsets

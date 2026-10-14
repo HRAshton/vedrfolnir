@@ -95,8 +95,8 @@ Do not tune repeatedly on final holdout seeds. We used seeds 42-46 for early dev
 ## 5. Separate public traces
 
 ~~~bash
-python -m vedrfolnir.benchmark_travistorrent --max-builds 1000 --warmup 100
-python -m vedrfolnir.benchmark_quickstart --no-open --max-plans 135
+vedrfolnir-travistorrent --max-builds 1000 --warmup 100
+vedrfolnir-wfcommons --no-open --max-plans 135
 python -m vedrfolnir.benchmarks --format swf \
   --input path/to/trace.swf.gz --output benchmark-results/swf
 ~~~
