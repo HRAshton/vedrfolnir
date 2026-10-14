@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "distro": {
+    "name": "debian",
+    "version": "13"
+  },
+  "scope": "Nonroot (UID 10001), single-worker demo/CSV Python HTTP API without privileged mount or ACL operations.",
+  "exceptions": [
+    {
+      "id": "CVE-2026-82560",
+      "severity": "High",
+      "packages": {
+        "perl-base": "5.40.1-6+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Perl POD formatter requires untrusted POD input; this Python service does not format Perl documentation.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-82560"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "severity": "High",
+      "packages": {
+        "libncursesw6": "6.5+20250216-2",
+        "libtinfo6": "6.5+20250216-2",
+        "ncurses-base": "6.5+20250216-2",
+        "ncurses-bin": "6.5+20250216-2"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Affected ncurses infocmp utility is not invoked by the HTTP API or normal service startup.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2025-69720"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "severity": "High",
+      "packages": {
+        "perl-base": "5.40.1-6+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Perl Archive::Tar requires processing a crafted tar archive; the API does not invoke Perl to extract archives.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-9538"
+    },
+    {
+      "id": "CVE-2026-5435",
+      "severity": "High",
+      "packages": {
+        "libc-bin": "2.41-12+deb13u4",
+        "libc6": "2.41-12+deb13u4"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Deprecated glibc DNS TSIG print functions are not used by API paths; Debian tracks this as no-DSA/minor.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-5435"
+    },
+    {
+      "id": "CVE-2026-85091",
+      "severity": "High",
+      "packages": {
+        "zlib1g": "1:1.3.dfsg+really1.3.1-1+b1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Specific gzprintf/gzvprintf-after-nonblocking-gzwrite stall is not exposed by the API; review promptly if native input paths change.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-85091"
+    },
+    {
+      "id": "CVE-2026-95619",
+      "severity": "High",
+      "packages": {
+        "gcc-14-base": "14.2.0-19",
+        "libgcc-s1": "14.2.0-19",
+        "libstdc++6": "14.2.0-19"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "libstdc++ aligned new large allocation path has no known direct trigger through this API; reassess native libraries.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-95619"
+    },
+    {
+      "id": "CVE-2026-19499",
+      "severity": "High",
+      "packages": {
+        "libc-bin": "2.41-12+deb13u4",
+        "libc6": "2.41-12+deb13u4"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "glibc right-justified strfmon monetary formatting is not called by this ETA service; Debian lists it no-DSA/minor.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-19499"
+    },
+    {
+      "id": "CVE-2026-102010",
+      "severity": "High",
+      "packages": {
+        "gcc-14-base": "14.2.0-19",
+        "libgcc-s1": "14.2.0-19",
+        "libstdc++6": "14.2.0-19"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Affected libstdc++ priority queue erase_if path has no known externally triggered use in the service.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-102010"
+    },
+    {
+      "id": "CVE-2026-76642",
+      "severity": "High",
+      "packages": {
+        "bsdutils": "1:2.41.5-0+deb13u1",
+        "libblkid1": "2.41.5-0+deb13u1",
+        "liblastlog2-2": "2.41.5-0+deb13u1",
+        "libmount1": "2.41.5-0+deb13u1",
+        "libsmartcols1": "2.41.5-0+deb13u1",
+        "libuuid1": "2.41.5-0+deb13u1",
+        "login": "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "mount": "2.41.5-0+deb13u1",
+        "util-linux": "2.41.5-0+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged mount helpers or hooks; service runs UID 10001 without host mount privileges.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-76642"
+    },
+    {
+      "id": "CVE-2026-78408",
+      "severity": "High",
+      "packages": {
+        "bsdutils": "1:2.41.5-0+deb13u1",
+        "libblkid1": "2.41.5-0+deb13u1",
+        "liblastlog2-2": "2.41.5-0+deb13u1",
+        "libmount1": "2.41.5-0+deb13u1",
+        "libsmartcols1": "2.41.5-0+deb13u1",
+        "libuuid1": "2.41.5-0+deb13u1",
+        "login": "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "mount": "2.41.5-0+deb13u1",
+        "util-linux": "2.41.5-0+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged nsenter --join-cgroup; nonroot runtime does not execute nsenter or manage host cgroups.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78408"
+    },
+    {
+      "id": "CVE-2026-78410",
+      "severity": "High",
+      "packages": {
+        "bsdutils": "1:2.41.5-0+deb13u1",
+        "libblkid1": "2.41.5-0+deb13u1",
+        "liblastlog2-2": "2.41.5-0+deb13u1",
+        "libmount1": "2.41.5-0+deb13u1",
+        "libsmartcols1": "2.41.5-0+deb13u1",
+        "libuuid1": "2.41.5-0+deb13u1",
+        "login": "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "mount": "2.41.5-0+deb13u1",
+        "util-linux": "2.41.5-0+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged SUID mount operations and an attacker-writable fstab bind source; service performs no mounts.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78410"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "severity": "High",
+      "packages": {
+        "libacl1": "2.3.2-2+b1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged libacl pathname operations over attacker-controlled symlinks; service is nonroot and does not modify ACLs.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-54369"
+    },
+    {
+      "id": "CVE-2026-78409",
+      "severity": "High",
+      "packages": {
+        "bsdutils": "1:2.41.5-0+deb13u1",
+        "libblkid1": "2.41.5-0+deb13u1",
+        "liblastlog2-2": "2.41.5-0+deb13u1",
+        "libmount1": "2.41.5-0+deb13u1",
+        "libsmartcols1": "2.41.5-0+deb13u1",
+        "libuuid1": "2.41.5-0+deb13u1",
+        "login": "1:4.16.0-2+really2.41.5-0+deb13u1",
+        "mount": "2.41.5-0+deb13u1",
+        "util-linux": "2.41.5-0+deb13u1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged fstab X-mount.subdir operations; service lacks host mount privileges and does not invoke mount.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-78409"
+    },
+    {
+      "id": "CVE-2026-54370",
+      "severity": "High",
+      "packages": {
+        "libacl1": "2.3.2-2+b1"
+      },
+      "reviewed_on": "2026-10-14",
+      "expires_on": "2026-10-28",
+      "rationale": "Requires privileged ACL utilities and attacker-controlled symlink races; the service does not run those utilities.",
+      "reference": "https://security-tracker.debian.org/tracker/CVE-2026-54370"
+    }
+  ]
+}

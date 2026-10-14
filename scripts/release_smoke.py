@@ -9,6 +9,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -169,6 +170,11 @@ def smoke_mode(image, mode, fixture_dir, volume, run_id):
     args.append(image)
     command(*args)
     try:
+        mounts = json.loads(subprocess.check_output(
+            ["docker", "inspect", "--format", "{{json .Mounts}}", name], text=True))
+        assert any(m["Destination"] == "/data" and m["RW"] for m in mounts)
+        if mode == "files":
+            assert any(m["Destination"] == "/srv/examples/data" and not m["RW"] for m in mounts)
         first, first_jobs = validate_surface(mode)
         command("docker", "stop", "--time", "15", name)
         stopped = json.loads(subprocess.check_output(
@@ -178,6 +184,15 @@ def smoke_mode(image, mode, fixture_dir, volume, run_id):
         assert stopped["ExitCode"] in (0, 143) and not stopped["OOMKilled"], stopped
         shutdown_log = subprocess.check_output(["docker", "logs", name], stderr=subprocess.STDOUT, text=True)
         assert "Application shutdown complete" in shutdown_log, shutdown_log
+        # Backup and restore with the app stopped, using the distributed interpreter.
+        command("docker", "run", "--rm", "--volume", f"{volume}:/data",
+                "--entrypoint", "python", image, "-c",
+                "import sqlite3; "
+                "source=sqlite3.connect('/data/eta.sqlite3'); "
+                "backup=sqlite3.connect('/data/smoke-backup.sqlite3'); "
+                "source.backup(backup); "
+                "assert backup.execute('PRAGMA integrity_check').fetchone()[0]=='ok'; "
+                "backup.backup(source); source.close(); backup.close()")
         command("docker", "start", name)
         second, second_jobs = validate_surface(mode)
         assert second["history_count"] == first["history_count"]
@@ -202,7 +217,20 @@ def smoke_mode(image, mode, fixture_dir, volume, run_id):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="vedrfolnir:preview-smoke")
+    parser.add_argument("--pull", action="store_true", help="Pull an immutable published GHCR digest")
     options = parser.parse_args(argv)
+    if options.pull:
+        if not re.fullmatch(r"ghcr\.io/hrashton/vedrfolnir@sha256:[0-9a-f]{64}", options.image):
+            parser.error("--pull requires the canonical GHCR SHA-256 digest reference")
+        command("docker", "pull", options.image)
+    uid = subprocess.check_output(["docker", "run", "--rm", "--entrypoint", "id",
+                                   options.image, "-u"], text=True).strip()
+    assert uid == "10001", f"Expected non-root UID 10001, got {uid}"
+    command("docker", "run", "--rm", "--entrypoint", "python", options.image, "-c",
+            "import sys, importlib.util, pyexpat; "
+            "assert pyexpat.version_info >= (2, 9, 0); "
+            "assert sys.version_info[:2] == (3, 15) and sys.version_info.releaselevel == 'final'; "
+            "assert importlib.util.find_spec('pymssql') is None")
     with tempfile.TemporaryDirectory(prefix="vedrfolnir-preview-") as folder:
         source_dir = Path(folder)
         os.chmod(source_dir, 0o755)  # Container runs as UID 10001.
