@@ -1,0 +1,60 @@
+name: Bootstrap GHCR package
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bootstrap-ghcr
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.repository == 'HRAshton/vedrfolnir' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Build bootstrap image from protected master
+        run: |
+          docker build --platform linux/amd64 --build-arg INSTALL_MSSQL=false \
+            --label org.opencontainers.image.source=https://github.com/HRAshton/vedrfolnir \
+            --tag ghcr.io/hrashton/vedrfolnir:bootstrap .
+          mkdir -p "$RUNNER_TEMP/bootstrap-image"
+          docker save --output "$RUNNER_TEMP/bootstrap-image/image.tar" ghcr.io/hrashton/vedrfolnir:bootstrap
+          cd "$RUNNER_TEMP/bootstrap-image"
+          sha256sum image.tar > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bootstrap-image
+          path: |
+            ${{ runner.temp }}/bootstrap-image/image.tar
+            ${{ runner.temp }}/bootstrap-image/SHA256SUMS
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+  publish:
+    needs: build
+    if: github.repository == 'HRAshton/vedrfolnir' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: bootstrap-image
+          path: ${{ runner.temp }}/bootstrap-image
+      - name: Verify and load the image archive
+        working-directory: ${{ runner.temp }}/bootstrap-image
+        run: |
+          sha256sum -c SHA256SUMS
+          docker load --input image.tar
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Create or refresh the bootstrap package tag
+        run: docker push ghcr.io/hrashton/vedrfolnir:bootstrap
