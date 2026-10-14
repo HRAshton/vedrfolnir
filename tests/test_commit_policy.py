@@ -49,15 +49,35 @@ def test_merge_commit_is_allowed_but_bad_feature_commit_fails(tmp_path, monkeypa
     ]
 
 
-@pytest.mark.parametrize(("title", "expected"), [
-    ("fix: valid PR title", []),
-    ("Invalid PR title", ["PR title must be a Conventional Commit subject"]),
+@pytest.mark.parametrize(("title", "commits", "expected"), [
+    ("fix: valid PR title", "fix: valid commit", []),
+    ("Invalid PR title", "fix: valid commit",
+     ["PR title must be a Conventional Commit subject"]),
+    ("fix: valid PR title", "invalid commit",
+     ["Invalid commit subject: invalid commit"]),
+    ("Invalid PR title", "invalid commit",
+     ["PR title must be a Conventional Commit subject",
+      "Invalid commit subject: invalid commit"]),
 ])
-def test_edited_pr_validates_title_without_rechecking_commits(monkeypatch, title, expected):
-    def no_git(*args, **kwargs):
-        pytest.fail("Metadata edits must not rerun commit history validation")
-    monkeypatch.setattr("scripts.check_commit_policy.subprocess.run", no_git)
-    assert check("pull_request", {"action": "edited", "pull_request": {"title": title}}) == expected
+def test_edited_pr_validates_title_and_commits(monkeypatch, title, commits, expected):
+    import subprocess
+
+    before, after = "a" * 40, "b" * 40
+    inspected = []
+
+    def fake_git(argv, **kwargs):
+        inspected.append(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout=commits + "\n")
+
+    monkeypatch.setattr("scripts.check_commit_policy.subprocess.run", fake_git)
+    event = {
+        "action": "edited",
+        "pull_request": {
+            "title": title, "base": {"sha": before}, "head": {"sha": after},
+        },
+    }
+    assert check("pull_request", event) == expected
+    assert inspected == [["git", "log", "--no-merges", "--format=%s", f"{before}..{after}"]]
 
 
 def test_pr_policy_is_required_and_metadata_does_not_start_full_ci():
