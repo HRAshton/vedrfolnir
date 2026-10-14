@@ -102,7 +102,7 @@ Container paths (`CSV_DATA_DIR`, `MSSQL_QUERY_DIR`) do not change.
 A mount change requires recreating the service container; use distinct
 SQLite volumes per source mode, not `docker compose down -v`.
 
-## Local Python CLI (0.3.0rc1 candidate)
+## Local Python CLI
 
 From the repository checkout on CPython 3.15:
 

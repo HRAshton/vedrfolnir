@@ -1,82 +1,73 @@
 # Vedrfolnir
 
-**Self-hosted build/workflow completion ETA** for queued and concurrent jobs. Uses historical durations, observed VM or runner-pool capacity, priority/FIFO queue replay, and a [River](https://riverml.xyz/) model that learns from completed builds. Includes an HTTP API and a built-in status/accuracy page.
+**Self-hosted build/workflow completion ETA** for queued and concurrent jobs.
+Historical durations, observed runner capacity and priority/FIFO queue replay
+provide a baseline; a River model learns from completed builds. Includes an
+HTTP API and a status/accuracy dashboard.
 
-**0.3.0rc1 development — unreleased.** Historical v0.2.0 notes refer to the old repository. Production ETA accuracy is **not proven**. Predicts time to a *terminal* result, including failures. **CPython 3.15 only**.
+**Experimental:** production ETA accuracy is **not proven**. Predictions target
+a *terminal* result, including failures. **CPython 3.15 only**; the initial
+container target is **Linux/amd64**, with demo and normalized CSV sources.
 
-## Try it
+## Run from source
 
-Requirements: Docker with Compose v2.
+With Docker and Compose v2, from a repository checkout:
 
 ~~~bash
 cp .env.example .env
-# Set a long random ETA_ADMIN_TOKEN in .env
+# Set a unique, long random ETA_ADMIN_TOKEN in .env
 docker compose up -d --build
 curl http://localhost:8080/api/status
 ~~~
 
-Open [http://localhost:8080](http://localhost:8080) or the [API documentation](http://localhost:8080/docs). The default **demo** mode uses synthetic data.
+Open [the dashboard](http://localhost:8080) or [API docs](http://localhost:8080/docs).
+The default demo uses synthetic data. Compose builds locally and persists
+SQLite state; use one host, one app instance and **one worker per database**.
+Do not mix demo and real histories in one data volume.
 
-The source checkout and Docker Compose are the current deployment path (Compose builds locally).
-The [release contract](docs/release-contract.md) defines future PyPI and
-`ghcr.io/hrashton/vedrfolnir` distribution; those artifacts are not yet published.
-The initial official image target is Linux/amd64 with demo/CSV support; MSSQL
-requires the optional extra in a source build and separate integration validation.
-For local installs, `vedrfolnir doctor` checks configuration and
-`vedrfolnir serve` starts one worker. See the
-[CSV](examples/quickstart/csv/README.md) and
-[SQL Server](examples/quickstart/sqlserver/README.md) examples.
-
-## Connect your own jobs
-
-Choose `SOURCE_MODE=files` for normalized CSV exports or `SOURCE_MODE=mssql` for SQL Server using **read-only SELECT queries**. Validate your mappings before starting:
+For a pip installation from the checkout (CPython 3.15):
 
 ~~~bash
-python -m pip install -e ".[dev]"           # CPython 3.15
-python -m vedrfolnir.source_validation --mode files --csv-dir examples/data
-# For SQL Server: --mode mssql --query-dir queries
+python -m pip install .
+# Configure .env with a unique ETA_ADMIN_TOKEN
+vedrfolnir doctor
+vedrfolnir serve --host 127.0.0.1 --port 8080
 ~~~
 
-Required sources: historical jobs, current jobs, and plans. Optional `sched_pool_id` distinguishes runners such as `mssql` and `android`. Vedrfolnir infers observed concurrency every 10 minutes; an optional `scheduler_pools.sql` / CSV supplies authoritative current limits (`0` = paused; `NULL` = unknown). Pool constraints never require per-pool ML models.
+PyPI publication and prebuilt `ghcr.io/hrashton/vedrfolnir` images are pending;
+these are source-install commands. Consumer install/pull commands will be
+added after the published artifacts are qualified. See the
+[release contract](docs/release-contract.md) and
+[GitHub Releases](https://github.com/HRAshton/vedrfolnir/releases) for support
+rules and version-specific publication notes.
 
-See [setup](docs/quickstart.md), [SQL/CSV contracts](docs/contracts.md), and [configuration](docs/configuration.md).
+**Security:** read API/UI endpoints are unauthenticated. Compose binds to
+`127.0.0.1`; remote access requires an authenticating TLS reverse proxy.
+The admin token protects sync only. Back up SQLite before upgrades and never
+load untrusted model checkpoints. See [operations](docs/operations.md).
 
-## What the ETA means
+## Connect and interpret your data
 
-1. Historical per-job durations provide a baseline. Unknown VM capacity or blocked work can require a fallback.
-2. The queue scheduler projects visible runnable jobs using observed or declared parallelism. **Future arrivals and unreported dependencies are not known.**
-3. River learns a bounded correction in the background and is selected only if earlier completed-build forecasts show sustained improvement.
-4. An empirical P90 upper ETA appears only after **40 comparable completed builds**; it is not a guaranteed probability.
+Follow the [quick start](docs/quickstart.md) for demo, CSV or optional
+SQL Server source builds; use SELECT-only SQL accounts. The planned official
+image omits the MSSQL driver, and SQL Server integration is unqualified until
+separately tested. [Source contracts](docs/contracts.md) define required
+columns and visibility assumptions.
 
-Inspect `GET /api/plans`, `/api/pools`, and `/api/metrics/by-workload`. Forecast warnings distinguish inferred capacity, sparse history, and absent calibration.
+Future arrivals, unreported dependencies and unknown scheduler policies are
+not inferred. River correction is selected only after sustained measured
+improvement. Empirical P90 bounds need 40 comparable completed builds and
+are not guarantees. See [forecasting](docs/forecasting.md) and
+[measured results and limitations](docs/observations.md).
 
-`GET /api/jobs` and `/api/jobs/{run_id}` expose queue start/finish estimates,
-source freshness and unsupported cases. The dashboard shows source health,
-wait/finish errors and daily trends by pool, job type and load; observations
-can be exported as CSV. [Job API and monitoring](docs/job-forecasts.md).
-
-## Validate and develop
+## Develop and explore
 
 ~~~bash
 python -m pip install -e ".[dev]"
-python -m pytest -q
-python -m simulator.validation --quick
+bash scripts/local_check.sh quick
 ~~~
 
-Run `bash scripts/local_check.sh quick` (Python 3.15); hosted CI runs the full package gate. [Development guide](docs/development.md). Public traces remain opt-in. [Candidate release notes](docs/releases/v0.3.0.md) · [Historical preview notes](docs/releases/v0.2.0.md) · [Release roadmap](docs/roadmap.md). [Evaluation protocol](docs/validation.md) · [Measured results and limits](docs/observations.md) · [Independent public benchmarks](docs/benchmarks.md).
-
-## Documentation
-
-| Goal | Guide |
-|---|---|
-| First run, CSV or SQL Server | [Quick start](docs/quickstart.md) |
-| Precise columns, statuses, pool cases | [Source contract](docs/contracts.md) |
-| Environment, Docker, logging | [Configuration](docs/configuration.md) |
-| Runtime flow and scheduler/ML | [Architecture](docs/architecture.md) |
-| ETAs, uncertainty, API and evaluation | [Forecasting](docs/forecasting.md) |
-| Recorded experiments and parameter observations | [Observations](docs/observations.md) |
-| Benchmarks and reproducibility | [Validation](docs/validation.md) |
-| Upgrades, security and troubleshooting | [Operations](docs/operations.md) |
-| Contributor commands | [Development](docs/development.md) |
-
-**Security:** Compose binds the unauthenticated read API to `127.0.0.1`; protect it with an authenticated proxy before external access. Do not mix demo and real histories in one data volume.
+The [development guide](docs/development.md) covers hosted CI and clean
+package checks. Public benchmarks remain opt-in. The
+[documentation index](docs/README.md) is the detailed navigation map;
+[roadmap](docs/roadmap.md) separates distribution gates from accuracy evidence.

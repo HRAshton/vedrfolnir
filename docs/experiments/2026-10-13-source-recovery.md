@@ -101,3 +101,5 @@ checkpointed overlapping replay window. It improves recovery for late
 **insertions within a configured completion-time lookback**, not arbitrary
 older backfills or changes to an already-imported run ID. The new policy and
 retention tradeoffs are documented in [history lifecycle](../history-lifecycle.md).
+
+Historical publication context: [old-repository preview](../observations.md#historical-repository-preview). Current release rules: [release contract](../release-contract.md).

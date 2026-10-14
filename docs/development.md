@@ -89,12 +89,14 @@ and `chore:` prefixes. Release engineering may also use `ci:`, `security:`
 and `release:`. Squash subjects must retain the PR's conventional title;
 GitHub-generated merge commits are allowed.
 
-The first candidate is `0.3.0rc1` / tag `v0.3.0rc1`. Hosted CI validates PRs; future PyPI/GHCR publishing requires its own
+Hosted CI validates PRs; future PyPI/GHCR publishing requires its own
 qualification and protection milestones. Publication will run only from
 explicit, protected release tags with environment approval, never from PR
-contexts or arbitrary merges. No tag or publication is created by this PR.
-See the [release contract](release-contract.md) for platforms, image flavors,
-artifact names, tags and gates. Local quick/full checks and Docker smoke
-remain required evidence alongside future hosted checks.
+contexts or arbitrary merges. Version-specific notes are reviewed in the
+[GitHub Release body](https://github.com/HRAshton/vedrfolnir/releases); no
+per-version Markdown page or `RELEASE_NOTES.md` file is required.
+See the [release contract](release-contract.md) for supported scope, tags and
+publication gates. Local quick/full checks and Docker smoke remain required
+evidence alongside hosted checks.
 
 See [validation](validation.md) and [roadmap](roadmap.md).

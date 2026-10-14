@@ -26,8 +26,7 @@ def test_release_version_is_consistent():
     assert "version" in project["project"]["dynamic"]
     assert "version" not in project["project"]
     assert project["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "vedrfolnir.__version__"
-    assert __version__ == app.version == version("vedrfolnir")
-    assert (ROOT / "docs" / "releases" / "v0.3.0.md").is_file()
+    assert __version__ == app.version == app.openapi()["info"]["version"] == version("vedrfolnir")
 
 
 def test_release_csv_fixture_matches_source_contract(tmp_path):

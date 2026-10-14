@@ -10,7 +10,7 @@ Python interpreter is substituted.
 
 Vedrfolnir needs **Docker + Compose v2** for the container route, or **CPython 3.15** for the local route. It stores model state, predictions and imported history in its **own SQLite database**. MSSQL is a **read-only input source**, not the application database.
 
-The first candidate `0.3.0rc1` is unreleased. Future PyPI installs and
+Public package/image publication is pending. Future PyPI installs and
 prebuilt GHCR deployment will be documented after qualification; the commands
 below use a source checkout. The planned official image supports Linux/amd64
 and demo/CSV, without the MSSQL driver. See the
