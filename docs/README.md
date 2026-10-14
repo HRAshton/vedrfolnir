@@ -17,6 +17,7 @@ Vedrfolnir is an **experimental single-host** build/workflow ETA service. Start 
 | Replay real task timelines without future labels | [Timeline replay](timeline-replay.md) |
 | Run public data traces with independent targets | [Public benchmarks](benchmarks.md) |
 | See **measured** results and negative findings | [Observations](observations.md) |
+| Configure repository protections and Renovate | [Security setup](security-setup.md) |
 | Deploy responsibly, back up or debug | [Operations](operations.md) |
 | Change the code / run test suite | [Development](development.md) |
 | See support rules, publication notes and release gates | [Release contract](release-contract.md), [roadmap](roadmap.md), [GitHub Releases](https://github.com/HRAshton/vedrfolnir/releases) |

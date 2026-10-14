@@ -13,7 +13,7 @@ scripts and hosted features. Version-specific notes belong in GitHub Releases.
 |---|---|---|
 | 0 | Verify merged CI | Green current `master` run; stable check names, real Python 3.15/River, clean artifact installs; failing regressions fail closed |
 | 1 | `docs: consolidate release notes and contributor guides` | Recursive links/fragments pass; no Markdown-size or per-version-file tests |
-| 3 | `security: protect releases and automate dependency review` | Active branch/tag rulesets, established required checks, dependency updates/review/scans and private disclosure route |
+| 3 | `security: protect releases and automate dependency review` | Active branch/tag rulesets, established required checks, Renovate updates/review/scans and private disclosure route |
 | 4 | `build: qualify Python distributions` | Confirm PyPI ownership, metadata/content audit, clean wheel/sdist installs and optional-extra checks |
 | 5 | `build: qualify prebuilt container distribution` | Linux/amd64, image-only consumer Compose, exact pulled digest demo/CSV restart/persistence and backup smoke |
 | 6 | `ci: publish approved versioned releases` | One workflow, protected tags/environment, OIDC, least privilege, immutable artifacts, safe partial-failure handling |

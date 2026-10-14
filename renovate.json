@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "enabledManagers": ["pep621", "pip_requirements", "github-actions", "dockerfile"],
+  "dependencyDashboard": true,
+  "automerge": false,
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {"matchManagers": ["pep621", "pip_requirements"], "matchUpdateTypes": ["minor", "patch"], "groupName": "Python dependencies"},
+    {"matchManagers": ["github-actions"], "groupName": "GitHub Actions"},
+    {"matchManagers": ["dockerfile"], "groupName": "container bases"},
+    {"matchUpdateTypes": ["major"], "dependencyDashboardApproval": true}
+  ]
+}
