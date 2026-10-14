@@ -57,3 +57,13 @@ def test_rehearsal_requires_ghcr_authentication_before_verification():
     assert "password: ${{ github.token }}" in consumer[login:script]
     assert "packages: read" in consumer
     assert "packages: write" not in consumer
+
+
+def test_script_never_constructs_paths_from_untrusted_manifest_names():
+    from pathlib import Path
+
+    script = (Path(__file__).resolve().parents[1] /
+              "scripts/rehearse_release.py").read_text(encoding="utf-8")
+    assert "asset = root / name" not in script
+    assert "downloaded = {asset.name: asset for asset in root.iterdir()" in script
+    assert 'downloaded.keys() != manifest["artifacts"].keys()' in script

@@ -55,9 +55,14 @@ def main(version, image):
         subprocess.run(["sha256sum", "-c", "SHA256SUMS"], cwd=root, check=True)
         manifest = json.loads((root / "release-manifest.json").read_text())
         validate_manifest(manifest, version, image, sha)
-        for name, item in manifest["artifacts"].items():
-            # The manifest controls names; never permit symlinks or traversal.
-            asset = root / name
+        # Enumerate downloaded files rather than constructing paths from
+        # attacker-controlled manifest keys.
+        downloaded = {asset.name: asset for asset in root.iterdir()
+                      if asset.name not in {"SHA256SUMS", "release-manifest.json"}}
+        if downloaded.keys() != manifest["artifacts"].keys():
+            raise ValueError("Release manifest and downloaded assets disagree")
+        for name, asset in downloaded.items():
+            item = manifest["artifacts"][name]
             if (asset.is_symlink() or not asset.is_file()
                     or not asset.resolve().is_relative_to(root.resolve())):
                 raise ValueError("Unsafe or missing release asset: " + name)
