@@ -22,6 +22,13 @@ Tracked configuration is not active enforcement. After the CI stack merges:
    other overlapping protections with their owner. Keeping the stricter approval
    policy is also valid, but merges still need an eligible independent reviewer.
 
+   Require the separate `PR title and commit policy` Actions check in the
+   **active** `Reviewed master` ruleset, in addition to the existing Python,
+   tooling and dependency checks. The tracked template includes this check,
+   but does not update GitHub settings. Confirm the check is enforced after a
+   title edit; only this short workflow should run, while full CI runs for
+   new commits and other source events.
+
    Verify the effective rules on a real PR targeting `master`: the intended
    approval policy, every required check, and resolved threads must apply. Do
    not infer enforcement from the template or one ruleset's settings alone.

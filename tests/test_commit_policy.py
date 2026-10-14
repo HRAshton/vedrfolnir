@@ -58,3 +58,23 @@ def test_edited_pr_validates_title_without_rechecking_commits(monkeypatch, title
         pytest.fail("Metadata edits must not rerun commit history validation")
     monkeypatch.setattr("scripts.check_commit_policy.subprocess.run", no_git)
     assert check("pull_request", {"action": "edited", "pull_request": {"title": title}}) == expected
+
+
+def test_pr_policy_is_required_and_metadata_does_not_start_full_ci():
+    """Title edits use a short, separately required check, not full CI."""
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    fast = (root / ".github/workflows/pr-policy.yml").read_text()
+    full = (root / ".github/workflows/ci.yml").read_text()
+    config = json.loads((root / ".github/rulesets/master.json").read_text())
+    required = next(rule for rule in config["rules"] if rule["type"] == "required_status_checks")
+    contexts = {item["context"] for item in required["parameters"]["required_status_checks"]}
+    assert "PR title and commit policy" in contexts
+    assert "types: [opened, synchronize, reopened, edited]" in fast
+    assert "types: [opened, synchronize, reopened]" in full
+    assert "edited" not in full
+    assert "name: PR title and commit policy" in fast
+    assert "name: PR title and commit policy" not in full
+    assert "run: python scripts/check_commit_policy.py" in fast
