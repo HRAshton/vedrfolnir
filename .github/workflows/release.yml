@@ -1,0 +1,228 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  authorize:
+    runs-on: ubuntu-24.04
+    if: github.repository == 'HRAshton/vedrfolnir'
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.guard.outputs.version }}
+      tag: ${{ steps.guard.outputs.tag }}
+      sha: ${{ steps.guard.outputs.sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.15'
+          allow-prereleases: false
+      - run: python -m pip install '.[dev]'
+      - id: guard
+        run: python scripts/validate_release.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+  qualify:
+    needs: authorize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.15'
+          allow-prereleases: false
+      - run: |
+          python -c 'import sys; assert sys.version_info[:2] == (3, 15) and sys.version_info.releaselevel == "final"'
+          python -m pip install '.[dev]' pip-audit
+          bash scripts/local_check.sh quick
+          python scripts/qualify_packages.py --dist dist --mssql
+          python -m pip_audit
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          build-args: INSTALL_MSSQL=false
+          tags: vedrfolnir:qualified
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+      - run: |
+          docker load --input "$RUNNER_TEMP/image.tar"
+          python scripts/release_smoke.py --image vedrfolnir:qualified
+          sha256sum "$RUNNER_TEMP/image.tar" | sed "s|$RUNNER_TEMP/||" > "$RUNNER_TEMP/image.sha256"
+      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+        with:
+          image: vedrfolnir:qualified
+          fail-build: false
+          severity-cutoff: high
+          output-format: json
+          output-file: container-audit.json
+      - name: Enforce reviewed and expiring vulnerability policy
+        if: always()
+        run: |
+          python scripts/check_container_audit.py \
+            --audit container-audit.json \
+            --policy security/container-risk-acceptances.json \
+            --decision container-audit-decision.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: release-container-vulnerability-audit
+          path: |
+            container-audit.json
+            container-audit-decision.json
+          if-no-files-found: warn
+      - name: Record executed qualification and runtime versions
+        env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: |
+          python - <<'PYTHON'
+          import json, os, sys, river
+          from pathlib import Path
+          report = {'python': sys.version, 'river': river.__version__, 'source_sha': os.environ['SOURCE_SHA'], 'run_url': os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'], 'checks': ['quick', 'qualified wheel/sdist/MSSQL-extra installs', 'pip-audit', 'demo/CSV image backup/restart smoke', 'full image scan and reviewed expiring vulnerability risk gate']}
+          Path('dist/qualification.json').write_text(json.dumps(report, indent=2) + '\n')
+          PYTHON
+          cd dist
+          sha256sum qualification.json >> SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: qualified-packages
+          path: dist/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: qualified-image
+          path: |
+            ${{ runner.temp }}/image.tar
+            ${{ runner.temp }}/image.sha256
+          if-no-files-found: error
+  image:
+    needs: [authorize, qualify]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-image
+      - run: sha256sum -c image.sha256
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: push
+        env:
+          TAG: ${{ needs.authorize.outputs.tag }}
+        run: |
+          reference="ghcr.io/hrashton/vedrfolnir:$TAG"
+          # Transport/authentication failures must not be mistaken for a missing tag.
+          if docker manifest inspect "$reference" > existing.json 2> inspect-error; then
+            echo 'Version already exists; verify prior release or use a new RC' >&2
+            exit 1
+          fi
+          grep -Eq 'manifest unknown|no such manifest|MANIFEST_UNKNOWN' inspect-error
+          docker load --input image.tar
+          docker tag vedrfolnir:qualified "$reference"
+          docker push "$reference"
+          docker pull "$reference"
+          digest="$(docker image inspect "$reference" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+  pulled-image:
+    needs: [authorize, image]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.15'
+          allow-prereleases: false
+      - run: |
+          python -m pip install .
+          python scripts/release_smoke.py --pull --image "ghcr.io/hrashton/vedrfolnir@$DIGEST"
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+  pypi:
+    needs: [qualify, pulled-image]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-packages
+          path: dist
+      - run: |
+          cd dist
+          sha256sum -c SHA256SUMS
+          mkdir ../publish
+          cp -- *.whl *.tar.gz ../publish/
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: publish
+  github-release:
+    needs: [authorize, image, pulled-image, pypi]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-packages
+          path: dist
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.authorize.outputs.tag }}
+          VERSION: ${{ needs.authorize.outputs.version }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: |
+          cd dist
+          sha256sum -c SHA256SUMS
+          printf 'Experimental Linux/amd64, CPython 3.15, demo/CSV, one worker/SQLite instance. MSSQL and production ETA accuracy are unqualified.\n\nSource: %s\nPackage: %s\nImage: ghcr.io/hrashton/vedrfolnir@%s\n\nVerify SHA256SUMS and immutable image digest. See the release contract and operations guide.\n' "$SOURCE_SHA" "$VERSION" "$DIGEST" > notes.md
+          python -c 'import json; q=json.load(open("qualification.json")); print("\nQualification run:", q["run_url"]); print("Python:", q["python"]); print("River:", q["river"]); print("Executed checks:", ", ".join(q["checks"]))' >> notes.md
+          flags=()
+          if [[ "$VERSION" == *rc* ]]; then flags+=(--prerelease --latest=false); fi
+          gh release create "$TAG" --repo HRAshton/vedrfolnir --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" -- *.whl *.tar.gz SHA256SUMS qualification.json
+  promote:
+    needs: [authorize, image, github-release]
+    if: ${{ !contains(needs.authorize.outputs.version, 'rc') }}
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      packages: write
+    steps:
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          docker pull "ghcr.io/hrashton/vedrfolnir@$DIGEST"
+          docker tag "ghcr.io/hrashton/vedrfolnir@$DIGEST" ghcr.io/hrashton/vedrfolnir:latest
+          docker push ghcr.io/hrashton/vedrfolnir:latest

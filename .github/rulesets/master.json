@@ -47,6 +47,9 @@
           },
           {
             "context": "Python vulnerability audit"
+          },
+          {
+            "context": "Container qualification"
           }
         ]
       }
