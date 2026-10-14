@@ -47,7 +47,7 @@ def test_rehearsal_requires_ghcr_authentication_before_verification():
     from pathlib import Path
 
     workflow = (Path(__file__).resolve().parents[1] /
-                ".github/workflows/release.yml").read_text(encoding="utf-8")
+                ".github/workflows/consumer-rehearsal.yml").read_text(encoding="utf-8")
     consumer = workflow.split("  consumer-rehearsal:\n", 1)[1]
     login = consumer.index("uses: docker/login-action@")
     script = consumer.index("python -m scripts.rehearse_release")
@@ -73,7 +73,7 @@ def test_rehearsal_executes_default_branch_code_not_user_selected_tag():
     from pathlib import Path
 
     workflow = (Path(__file__).resolve().parents[1] /
-                ".github/workflows/release.yml").read_text(encoding="utf-8")
+                ".github/workflows/consumer-rehearsal.yml").read_text(encoding="utf-8")
     consumer = workflow.split("  consumer-rehearsal:\n", 1)[1]
     assert "github.ref == 'refs/heads/master'" in consumer
     assert "ref: v${{ inputs.version }}" not in consumer
@@ -82,3 +82,21 @@ def test_rehearsal_executes_default_branch_code_not_user_selected_tag():
               "scripts/rehearse_release.py").read_text(encoding="utf-8")
     assert 'f"refs/tags/v{version}^{{commit}}"' in script
     assert '["git", "merge-base", "--is-ancestor", sha, "HEAD"]' in script
+
+
+def test_manual_rehearsal_cannot_enter_publishing_workflow():
+    from pathlib import Path
+
+    workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
+    release = (workflows / "release.yml").read_text(encoding="utf-8")
+    rehearsal = (workflows / "consumer-rehearsal.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch" not in release
+    assert "consumer-rehearsal:" not in release
+    assert "push:\n    tags: ['v*']" in release
+    assert "workflow_dispatch:" in rehearsal
+    assert "github.ref == 'refs/heads/master'" in rehearsal
+    assert "needs.authorize.outputs.sha" not in rehearsal
+    assert "environment: release" not in rehearsal
+    assert "id-token: write" not in rehearsal
+    assert "contents: write" not in rehearsal
+    assert "packages: write" not in rehearsal
