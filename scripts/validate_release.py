@@ -36,10 +36,18 @@ def validate_protections(branch_rules, tag_rulesets, environment):
     immutable = False
     for ruleset in tag_rulesets:
         conditions = ruleset.get("conditions", {}).get("ref_name", {})
-        if (ruleset.get("target") == "tag" and ruleset.get("enforcement") == "active"
-                and "refs/tags/v*" in conditions.get("include", [])
-                and not conditions.get("exclude") and not ruleset.get("bypass_actors")
-                and {"update", "deletion"} <= {rule["type"] for rule in ruleset.get("rules", [])}):
+        applies = (ruleset.get("target") == "tag" and ruleset.get("enforcement") == "active"
+                   and "refs/tags/v*" in conditions.get("include", [])
+                   and not conditions.get("exclude")
+                   and {"update", "deletion"} <= {rule["type"] for rule in ruleset.get("rules", [])})
+        if not applies:
+            continue
+        # GitHub redacts bypass_actors without write access to the ruleset.
+        # Absence (or null) does not prove that bypasses are disabled.
+        if "bypass_actors" not in ruleset or not isinstance(ruleset["bypass_actors"], list):
+            raise ValueError("Cannot verify tag ruleset bypass_actors; GitHub may redact it "
+                             "without ruleset write access. Refusing release")
+        if ruleset["bypass_actors"] == []:
             immutable = True
     if not immutable:
         raise ValueError("Active immutable v* tag rules without bypasses are required")

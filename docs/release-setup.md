@@ -9,6 +9,15 @@ settings and fails if protections/reviewers are absent or inaccessible. It also
 requires the tag/version/source SHA to match a commit reachable from `master`.
 No PR or arbitrary branch push publishes.
 
+**Bypass verification is fail-closed.** GitHub returns the `bypass_actors`
+field only to API callers with write access to the ruleset. The authorization
+guard requires that field to be present and exactly `[]` for the matching
+immutable `v*` tag ruleset. A normal read-only `GITHUB_TOKEN` can receive a
+redacted response and will therefore **block release**, even when the ruleset
+has no bypass actors. A secure, independently authorized verification mechanism
+must be arranged before publishing; do not treat missing data as an empty list
+or grant repository administration write access to untrusted release code.
+
 Confirm/control the PyPI name immediately before configuring Trusted Publishing
 for owner `HRAshton`, repository `vedrfolnir`, workflow `release.yml`, environment
 `release`. No stored PyPI token is used. A pending publisher does not reserve a

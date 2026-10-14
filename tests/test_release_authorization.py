@@ -34,6 +34,57 @@ def test_protection_requires_actual_enforcement_and_reviewers():
         validate_protections(branch, tags, environment)
 
 
+def verified_release_protections():
+    branch = [{"type": rule} for rule in
+              ["pull_request", "required_status_checks", "deletion", "non_fast_forward"]]
+    branch[1]["parameters"] = {"required_status_checks": [{"context": name} for name in [
+        "Python and package validation", "Shell and workflow validation",
+        "Dependency review", "Python vulnerability audit", "Container qualification",
+    ]]}
+    tags = [{
+        "target": "tag", "enforcement": "active", "bypass_actors": [],
+        "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
+        "rules": [{"type": "update"}, {"type": "deletion"}],
+    }]
+    environment = {"protection_rules": [{"type": "required_reviewers", "reviewers": [{"id": 1}]}]}
+    return branch, tags, environment
+
+
+@pytest.mark.parametrize("redacted", [
+    "missing", None, False, "", {}, 0,
+])
+def test_tag_ruleset_bypass_must_be_explicitly_verified(redacted):
+    branch, tags, environment = verified_release_protections()
+    if redacted == "missing":
+        del tags[0]["bypass_actors"]
+    else:
+        tags[0]["bypass_actors"] = redacted
+    with pytest.raises(ValueError, match="Cannot verify tag ruleset bypass_actors"):
+        validate_protections(branch, tags, environment)
+
+
+def test_explicit_empty_bypass_list_allows_verified_tag_ruleset():
+    validate_protections(*verified_release_protections())
+
+
+def test_nonempty_bypass_list_cannot_authorize_release():
+    branch, tags, environment = verified_release_protections()
+    tags[0]["bypass_actors"] = [{"actor_id": 1, "actor_type": "User"}]
+    with pytest.raises(ValueError, match="without bypasses"):
+        validate_protections(branch, tags, environment)
+
+
+def test_second_matching_redacted_ruleset_cannot_be_ignored():
+    from copy import deepcopy
+
+    branch, tags, environment = verified_release_protections()
+    unknown = deepcopy(tags[0])
+    del unknown["bypass_actors"]
+    tags.append(unknown)
+    with pytest.raises(ValueError, match="Cannot verify tag ruleset bypass_actors"):
+        validate_protections(branch, tags, environment)
+
+
 def test_annotated_and_lightweight_event_shas_resolve_same_commit(tmp_path, monkeypatch):
     import subprocess
     from scripts.validate_release import resolve_event_commit
