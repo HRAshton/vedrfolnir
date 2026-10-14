@@ -63,7 +63,7 @@ python -m pytest -q
 python -m simulator.validation --quick
 ~~~
 
-Run `bash scripts/local_check.sh quick` (Python 3.15); hosted CI is planned next. [Development guide](docs/development.md). Public traces remain opt-in. [Candidate release notes](docs/releases/v0.3.0.md) · [Historical preview notes](docs/releases/v0.2.0.md) · [Release roadmap](docs/roadmap.md). [Evaluation protocol](docs/validation.md) · [Measured results and limits](docs/observations.md) · [Independent public benchmarks](docs/benchmarks.md).
+Run `bash scripts/local_check.sh quick` (Python 3.15); hosted CI runs the full package gate. [Development guide](docs/development.md). Public traces remain opt-in. [Candidate release notes](docs/releases/v0.3.0.md) · [Historical preview notes](docs/releases/v0.2.0.md) · [Release roadmap](docs/roadmap.md). [Evaluation protocol](docs/validation.md) · [Measured results and limits](docs/observations.md) · [Independent public benchmarks](docs/benchmarks.md).
 
 ## Documentation
 
