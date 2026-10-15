@@ -1,28 +1,35 @@
 # Container runtime constraints
 
-The runtime dependency set used by the published Linux/amd64 image should be
-fully pinned after resolution with **real CPython 3.15**, not guessed from
-project minimum versions or frozen from a developer's editable environment.
+The official Linux/amd64 image installs exact Python runtime package versions
+from `requirements/container-constraints.txt`. These pins were resolved on a
+clean Linux CPython 3.15 GitHub Actions runner from the built Vedrfolnir wheel,
+not from an editable development environment.
 
-From a clean Python 3.15 host with the project's build dependencies installed:
+After intentional runtime dependency updates, regenerate on a clean Linux/amd64
+CPython 3.15 host with project build dependencies installed:
 
 ```bash
 python scripts/generate_container_constraints.py
 python scripts/generate_container_constraints.py --check
 ```
 
-The generator builds the actual Vedrfolnir wheel, installs it in a clean
-environment, and records all resolved installed package versions except the
-project and Python's packaging bootstrap tools.
+The generator builds the actual wheel, installs it in a clean venv, and records
+all resolved installed packages except Vedrfolnir and packaging bootstrap tools.
+Review each changed package and its security implications before committing.
+`--check` installs **under the committed constraints** and compares the exact
+resolved inventory against the file. New upstream releases alone therefore do
+not cause unrelated CI failures.
 
-**This draft introduces the reproducible generator and policy tests; it does not
-yet claim an enforced lock.** Before merging, generate and review
-`requirements/container-constraints.txt` on Linux/amd64, update the
-Dockerfile to install with `--constraint`, and add a PR check that verifies
-the resulting installed inventory matches the file. Runtime dependency changes
-must regenerate this lock; package users still receive the compatible version
-ranges from `pyproject.toml`.
+The Dockerfile uses `pip --constraint` and `pip check`; CI independently
+checks the full installed package inventory of the built official image against
+the committed constraints, then runs demo/CSV/restart smoke and the existing
+image vulnerability gate. An unexpected extra/missing package or version
+fails the check even if pip installation succeeded.
 
-OS packages are separately tied to the pinned Debian image plus its apt
-repository contents; this Python lock does not freeze all OS packages or
-guarantee bit-reproducible container builds.
+The optional MSSQL driver is not part of the official image lock or its CI
+qualification; `INSTALL_MSSQL=true` remains an unqualified image variant.
+Package consumers still get compatible dependency ranges from `pyproject.toml`.
+
+Version-only constraints do not pin artifact hashes; they do not guarantee
+bit-reproducible images. OS packages depend on the pinned Debian base and the
+apt repository contents, separately from these Python constraints.

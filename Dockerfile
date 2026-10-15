@@ -46,13 +46,14 @@ RUN ln -s /opt/python/bin/python3.15 /opt/python/bin/python \
 
 WORKDIR /srv
 COPY pyproject.toml README.md ./
+COPY requirements/container-constraints.txt ./requirements/container-constraints.txt
 COPY src/ ./src/
 ARG INSTALL_MSSQL=false
 RUN if [ "$INSTALL_MSSQL" = "true" ]; then \
-        python -m pip install --no-cache-dir '.[mssql]'; \
+        python -m pip install --no-cache-dir --constraint requirements/container-constraints.txt '.[mssql]'; \
     else \
-        python -m pip install --no-cache-dir .; \
-    fi && useradd --system --uid 10001 --create-home vedrfolnir
+        python -m pip install --no-cache-dir --constraint requirements/container-constraints.txt .; \
+    fi && python -m pip check && useradd --system --uid 10001 --create-home vedrfolnir
 
 COPY queries/ ./queries/
 COPY examples/ ./examples/
