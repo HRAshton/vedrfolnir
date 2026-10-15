@@ -1,0 +1,19 @@
+name: Maintenance release assessment
+on:
+  schedule:
+    - cron: '17 9 * * 2'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  eligibility:
+    if: github.repository == 'HRAshton/vedrfolnir' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Assess release candidates without mutation
+        run: python scripts/plan_maintenance_release.py --from-tag v0.3.0rc1
