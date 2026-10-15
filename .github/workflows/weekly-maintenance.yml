@@ -98,7 +98,7 @@ jobs:
           digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
-          printf 'Preview image: `ghcr.io/hrashton/vedrfolnir@%s`\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Preview digest: %s\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
 
   attest:
     needs: publish
