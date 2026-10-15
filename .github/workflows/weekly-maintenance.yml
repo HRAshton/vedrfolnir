@@ -87,18 +87,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - name: Update preview alias, never immutable release tags
+      - name: Push uniquely tagged candidate, never edge yet
         id: image
         run: |
           set -euo pipefail
-          image=ghcr.io/hrashton/vedrfolnir:edge
+          image="ghcr.io/hrashton/vedrfolnir:edge-candidate-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           docker tag vedrfolnir:weekly-qualified "$image"
           docker push "$image"
           docker pull "$image"
           digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
-          printf 'Preview digest: %s\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Qualified digest: %s\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
 
   attest:
     needs: publish
@@ -119,3 +119,33 @@ jobs:
           subject-name: ghcr.io/hrashton/vedrfolnir
           subject-digest: ${{ needs.publish.outputs.digest }}
           push-to-registry: true
+
+  promote:
+    needs: [publish, attest]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Move edge only after completed provenance
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker pull "ghcr.io/hrashton/vedrfolnir@$DIGEST"
+          docker tag "ghcr.io/hrashton/vedrfolnir@$DIGEST" ghcr.io/hrashton/vedrfolnir:edge
+          output="$(docker push ghcr.io/hrashton/vedrfolnir:edge)"
+          printf '%s\n' "$output"
+          pushed="$(printf '%s\n' "$output" | grep -Eo 'digest: sha256:[0-9a-f]{64}' | tail -n 1 | awk '{print $2}')"
+          [[ "$pushed" == "$DIGEST" ]] || {
+            echo "Published edge digest differs from attested candidate; investigate before use" >&2
+            exit 1
+          }
+          printf 'Promoted attested digest: %s\n' "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
