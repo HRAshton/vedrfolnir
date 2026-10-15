@@ -103,6 +103,9 @@ def test_newer_unreachable_tag_and_unrelated_changes_fail_closed(tmp_path, monke
     assert not result["eligible"] and "README.md" in result["changed_paths"]
 
     run("switch", "-c", "another-release")
+    (tmp_path / "other-release.txt").write_text("different history", encoding="utf-8")
+    run("add", ".")
+    run("commit", "-m", "different release")
     run("tag", "v0.3.0rc2")
     run("switch", "master")
     assert not plan()["eligible"]
