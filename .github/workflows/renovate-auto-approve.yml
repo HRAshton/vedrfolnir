@@ -1,0 +1,22 @@
+name: Renovate safe approval
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  review:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: master
+          persist-credentials: false
+      - name: Verify bot PR and exact dependency diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/approve_renovate.py "$GITHUB_EVENT_PATH"
