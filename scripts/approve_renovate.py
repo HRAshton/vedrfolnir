@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 
 REPO = "HRAshton/vedrfolnir"
 APPROVED = {"pytest", "ruff", "build", "twine", "httpx"}
-SPEC = re.compile(r"^([a-z][a-z0-9-]*)>=(\\d+(?:\\.\\d+){0,2}),<(\\d+(?:\\.\\d+){0,2})$")
+SPEC = re.compile(r"^([a-z][a-z0-9-]*)>=(\d+(?:\.\d+){0,2}),<(\d+(?:\.\d+){0,2})$")
 
 
 def parse_spec(text: str):
