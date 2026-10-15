@@ -2,15 +2,46 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "enabledManagers": ["pep621", "pip_requirements", "github-actions", "dockerfile"],
+  "timezone": "Europe/Belgrade",
+  "schedule": ["* 2-6 * * 1"],
   "dependencyDashboard": true,
-  "automerge": false,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "automerge": false,
+  "automergeType": "pr",
+  "platformAutomerge": true,
   "prConcurrentLimit": 3,
+  "labels": ["dependencies"],
   "packageRules": [
-    {"matchManagers": ["pep621", "pip_requirements"], "matchUpdateTypes": ["minor", "patch"], "groupName": "Python dependencies"},
-    {"matchManagers": ["github-actions"], "groupName": "GitHub Actions"},
-    {"matchManagers": ["dockerfile"], "groupName": "container bases"},
-    {"matchUpdateTypes": ["major"], "dependencyDashboardApproval": true}
+    {
+      "description": "Allow only patch-level development-tool updates to automerge after independent policy validation and required CI",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["dev"],
+      "matchPackageNames": ["pytest", "ruff", "build", "twine", "httpx"],
+      "matchUpdateTypes": ["patch"],
+      "minimumReleaseAge": "3 days",
+      "automerge": true
+    },
+    {
+      "description": "Runtime libraries must be reviewed for model, SQLite, and API compatibility",
+      "matchPackageNames": ["river", "SQLAlchemy", "fastapi", "uvicorn", "pymssql"],
+      "automerge": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "Weekly GitHub Actions",
+      "automerge": false
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "Container bases",
+      "automerge": false
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    }
   ]
 }
