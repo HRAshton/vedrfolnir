@@ -17,7 +17,8 @@
     {
       "description": "Allow only patch-level development-tool updates to automerge after independent policy validation and required CI",
       "matchManagers": ["pep621"],
-      "matchDepTypes": ["dev"],
+      "matchDepTypes": ["project.optional-dependencies"],
+      "matchJsonata": ["managerData.depGroup = 'dev'"],
       "matchPackageNames": ["pytest", "ruff", "build", "twine", "httpx"],
       "matchUpdateTypes": ["patch"],
       "minimumReleaseAge": "3 days",
