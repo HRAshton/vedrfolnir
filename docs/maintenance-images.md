@@ -1,25 +1,35 @@
 # Automated maintenance images
 
-The scheduled workflow runs on Tuesday at 06:17 UTC after the Monday Renovate
-window. It checks out the protected `master` branch, runs real River tests, builds
-the Linux/amd64 container, exercises demo and CSV startup/restart, and enforces
-the existing vulnerability policy. Only the tested image archive crosses into
-the narrowly scoped GHCR publication job.
+Every Tuesday, the scheduled workflow compares the **tracked image build inputs**
+(Dockerfile, packaged Python source/metadata, runtime constraints, bundled
+examples and SQL queries) with the last successfully promoted GHCR `edge` image.
 
-The mutable `ghcr.io/hrashton/vedrfolnir:edge` tag is an **experimental preview**
-for maintainers, not a versioned release. A successful run records the
-immutable digest in its Actions summary and attests that digest. Consumers
-should opt in explicitly and pin the digest; the workflow does not restart
-any user's deployment, update PyPI, create tags or change `latest`.
+- **Unchanged inputs:** skip building, publishing, attesting and promoting, but
+  still run the container vulnerability scan against the existing `edge` image.
+- **Changed inputs:** run tests, build and smoke-test a candidate, enforce
+  vulnerability policy, attest its image digest, then promote to `edge`.
+- **Absent or legacy unlabelled `edge`:** build once to establish the
+  `org.vedrfolnir.image-input-sha256` label.
+- **Registry or authentication failure:** fail closed; never interpret an
+  unknown error as permission to publish.
 
-Qualification publishes a uniquely named `edge-candidate-<run>-<attempt>`
-image first, attests its exact digest, then promotes that verified digest to
-`edge`. Failed qualification or signing therefore never overwrites the
-previous `edge`. A failed promotion preserves the previously available
-`edge` unless registry writes partially completed. Every completed promotion
-checks that the registry digest matches the signed candidate; investigate
-conflicting or indeterminate writes rather than retrying with guessed state.
-Candidate tags remain as an audit trail and can be expired separately.
+The fingerprint is SHA-256 of deterministic tracked Git tree entries, **not**
+the latest commit SHA or the last scheduled workflow execution. A prior failed
+attempt therefore cannot cause the next run to skip. Unshipped docs, CI and
+dev-only changes do not cause unnecessary container publication.
 
-Schedule timing is best effort; GitHub may delay scheduled workflows. For an
-urgent preview, use the explicit workflow dispatch on the protected default branch.
+The fingerprint does not cover drifting Debian apt repository content. For
+urgent OS security rebuilds or deliberate image refreshes, manually dispatch
+this workflow on protected `master` with `force=true`. The weekly unchanged
+image scan still detects new vulnerability findings without republishing.
+
+The mutable `ghcr.io/hrashton/vedrfolnir:edge` remains an opt-in experimental
+preview: pin digests where possible. The workflow does not modify `v*` release
+tags, `latest`, PyPI or users' running installations. The candidate → attest
+→ promote sequence remains unchanged; failed qualification/attestation leaves
+the previous `edge` untouched. Indeterminate registry writes require review.
+
+The separate read-only release assessment reports `no-distribution`,
+`image-only`, or `package-and-image` changes since the latest reachable tag.
+This **does not authorize publication**. The existing conservative release
+eligibility gate and reviewed versioned release pipeline remain intact.
