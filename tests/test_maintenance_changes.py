@@ -64,3 +64,44 @@ def test_malformed_tree_rejected():
         fingerprint_tree(b"")
     with pytest.raises(ValueError):
         fingerprint_tree(b"not-null-terminated")
+
+
+def test_missing_edge_bootstraps_but_registry_error_fails_closed(monkeypatch):
+    from types import SimpleNamespace
+    from scripts import maintenance_changes as maintenance
+
+    def missing(*args, **kwargs):
+        assert args[0] == ["docker", "manifest", "inspect", maintenance.EDGE]
+        return SimpleNamespace(returncode=1, stderr="manifest unknown", stdout="")
+
+    monkeypatch.setattr(maintenance.subprocess, "run", missing)
+    assert maintenance.prior_edge() == (None, "absent")
+
+    def denied(*args, **kwargs):
+        return SimpleNamespace(returncode=1, stderr="unauthorized: denied", stdout="")
+
+    monkeypatch.setattr(maintenance.subprocess, "run", denied)
+    with pytest.raises(RuntimeError, match="GHCR lookup failed"):
+        maintenance.prior_edge()
+
+
+def test_previous_successful_edge_identity_is_taken_from_image_label(monkeypatch):
+    import json
+    from types import SimpleNamespace
+    from scripts import maintenance_changes as maintenance
+
+    old = "a" * 64
+    monkeypatch.setattr(
+        maintenance.subprocess, "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stderr="", stdout="")
+    )
+    monkeypatch.setattr(
+        maintenance.subprocess, "check_output",
+        lambda *args, **kwargs: json.dumps([{
+            "Config": {"Labels": {maintenance.LABEL: old}},
+            "RepoDigests": ["ghcr.io/hrashton/vedrfolnir@sha256:" + "b" * 64]
+        }])
+    )
+    previous, ref = maintenance.prior_edge()
+    assert previous == old
+    assert ref.endswith("sha256:" + "b" * 64)
