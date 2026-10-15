@@ -12,10 +12,14 @@ immutable digest in its Actions summary and attests that digest. Consumers
 should opt in explicitly and pin the digest; the workflow does not restart
 any user's deployment, update PyPI, create tags or change `latest`.
 
-When qualification fails, the existing `edge` image remains the last
-successfully pushed preview. A failure in the provenance-attestation job means
-the image has already been pushed but its attestation may be incomplete; do
-not treat that run as a fully qualified release.
+Qualification publishes a uniquely named `edge-candidate-<run>-<attempt>`
+image first, attests its exact digest, then promotes that verified digest to
+`edge`. Failed qualification or signing therefore never overwrites the
+previous `edge`. A failed promotion preserves the previously available
+`edge` unless registry writes partially completed. Every completed promotion
+checks that the registry digest matches the signed candidate; investigate
+conflicting or indeterminate writes rather than retrying with guessed state.
+Candidate tags remain as an audit trail and can be expired separately.
 
 Schedule timing is best effort; GitHub may delay scheduled workflows. For an
 urgent preview, use the explicit workflow dispatch on the protected default branch.
