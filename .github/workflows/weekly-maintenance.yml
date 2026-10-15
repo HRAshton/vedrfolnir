@@ -1,0 +1,121 @@
+name: Weekly maintenance image
+
+on:
+  schedule:
+    - cron: '17 6 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-edge-publication
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.repository == 'HRAshton/vedrfolnir' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.15'
+          allow-prereleases: false
+      - name: Qualify source and runtime image
+        run: |
+          python -m pip install '.[dev]'
+          bash scripts/local_check.sh quick
+          docker build --build-arg INSTALL_MSSQL=false \
+            --label "org.opencontainers.image.source=https://github.com/HRAshton/vedrfolnir" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag vedrfolnir:weekly-qualified .
+          python scripts/release_smoke.py --image vedrfolnir:weekly-qualified
+      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+        with:
+          image: vedrfolnir:weekly-qualified
+          fail-build: false
+          severity-cutoff: high
+          output-format: json
+          output-file: container-audit.json
+      - name: Enforce bounded vulnerability exceptions
+        run: |
+          python scripts/check_container_audit.py \
+            --audit container-audit.json \
+            --policy security/container-risk-acceptances.json \
+            --decision container-audit-decision.json
+      - name: Save exact qualified image and checksum
+        run: |
+          mkdir -p "$RUNNER_TEMP/weekly-image"
+          docker save -o "$RUNNER_TEMP/weekly-image/image.tar" vedrfolnir:weekly-qualified
+          (cd "$RUNNER_TEMP/weekly-image" && sha256sum image.tar > SHA256SUMS)
+          printf 'Source SHA: %s\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: qualified-weekly-image
+          path: |
+            ${{ runner.temp }}/weekly-image/image.tar
+            ${{ runner.temp }}/weekly-image/SHA256SUMS
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-weekly-image
+          path: ${{ runner.temp }}/weekly-image
+      - name: Verify and load qualified image
+        working-directory: ${{ runner.temp }}/weekly-image
+        run: |
+          sha256sum -c SHA256SUMS
+          docker load -i image.tar
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Update preview alias, never immutable release tags
+        id: image
+        run: |
+          set -euo pipefail
+          image=ghcr.io/hrashton/vedrfolnir:edge
+          docker tag vedrfolnir:weekly-qualified "$image"
+          docker push "$image"
+          docker pull "$image"
+          digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          printf 'Preview image: `ghcr.io/hrashton/vedrfolnir@%s`\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
+
+  attest:
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      packages: write
+    steps:
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ghcr.io/hrashton/vedrfolnir
+          subject-digest: ${{ needs.publish.outputs.digest }}
+          push-to-registry: true
