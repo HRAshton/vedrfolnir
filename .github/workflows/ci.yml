@@ -54,6 +54,11 @@ jobs:
           python -m simulator.validation --quick --output benchmark-results/ci-smoke
       - name: Build and qualify wheel and sdist once
         run: python scripts/qualify_packages.py --dist "$RUNNER_TEMP/qualified-dist" --mssql
+      - name: Resolve and verify container dependency constraints
+        run: |
+          python scripts/generate_container_constraints.py --output "$RUNNER_TEMP/container-constraints.generated.txt"
+          cat "$RUNNER_TEMP/container-constraints.generated.txt"
+          diff -u requirements/container-constraints.txt "$RUNNER_TEMP/container-constraints.generated.txt"
       - name: Compile Python sources
         run: python -m compileall -q src simulator scripts tests
 
