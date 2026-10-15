@@ -16,4 +16,4 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Assess release candidates without mutation
-        run: python scripts/plan_maintenance_release.py
+        run: python -m scripts.plan_maintenance_release
