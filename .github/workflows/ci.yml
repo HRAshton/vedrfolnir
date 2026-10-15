@@ -48,9 +48,11 @@ jobs:
         run: |
           git rev-parse HEAD
           python -c 'import sys, river; print(sys.version); print("River", river.__version__)'
-      - name: Full gate (quick tests, simulation, wheel and sdist installs)
-        run: bash scripts/local_check.sh full
-      - name: Qualify distribution metadata, contents and optional driver install
+      - name: Unit tests and smoke simulation
+        run: |
+          bash scripts/local_check.sh quick
+          python -m simulator.validation --quick --output benchmark-results/ci-smoke
+      - name: Build and qualify wheel and sdist once
         run: python scripts/qualify_packages.py --dist "$RUNNER_TEMP/qualified-dist" --mssql
       - name: Compile Python sources
         run: python -m compileall -q src simulator scripts tests
