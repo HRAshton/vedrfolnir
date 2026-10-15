@@ -15,6 +15,11 @@ created on a different branch. An assessment may remain ineligible after a
 historical release when unrelated changes have not yet received a manually
 reviewed release; automatic retagging does not bypass that review.
 
+The assessment also classifies changed paths as `no-distribution` (docs,
+tests, tooling), `image-only` (Dockerfile, pinned dependencies, bundled inputs)
+or `package-and-image` (Python source and package metadata). The result is
+informational and must not authorize publication by itself.
+
 Only changes to `requirements/container-constraints.txt` are candidates for
 future unattended publication. Source, security controls, Dockerfile, workflow,
 metadata and mixed changes require human review. A qualifying change still

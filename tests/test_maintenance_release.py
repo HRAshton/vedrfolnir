@@ -110,3 +110,42 @@ def test_newer_unreachable_tag_and_unrelated_changes_fail_closed(tmp_path, monke
     run("switch", "master")
     assert not plan()["eligible"]
     assert "not reachable" in plan()["reason"]
+
+
+def test_planner_reports_distribution_without_loosening_release_policy(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    def run(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, stdout=subprocess.DEVNULL)
+
+    run("init", "-b", "master")
+    run("config", "user.name", "Test")
+    run("config", "user.email", "test@example.invalid")
+    (tmp_path / "README.md").write_text("Original", encoding="utf-8")
+    run("add", ".")
+    run("commit", "-m", "test: initial")
+    run("tag", "v0.3.0rc1")
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "guide.md").write_text("Docs", encoding="utf-8")
+    run("add", ".")
+    run("commit", "-m", "docs: change")
+    result = plan()
+    assert result["distribution"] == "no-distribution"
+    assert not result["requires_image_publication"] and not result["eligible"]
+
+    (tmp_path / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    run("add", ".")
+    run("commit", "-m", "build: image")
+    result = plan()
+    assert result["distribution"] == "image-only"
+    assert result["requires_image_publication"] and not result["requires_package_release"]
+    assert not result["eligible"]
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("pass\n", encoding="utf-8")
+    run("add", ".")
+    run("commit", "-m", "feat: package")
+    result = plan()
+    assert result["distribution"] == "package-and-image"
+    assert result["requires_package_release"] and not result["eligible"]

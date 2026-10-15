@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '17 6 * * 2'
   workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if inputs are unchanged (e.g. OS security refresh)
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -13,8 +19,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  qualify:
+  changes:
+    name: Check published image inputs
     if: github.repository == 'HRAshton/vedrfolnir' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      changed: ${{ steps.inspect.outputs.changed }}
+      image_inputs: ${{ steps.inspect.outputs.image_inputs }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Decide whether a new image is needed
+        id: inspect
+        env:
+          FORCE_REBUILD: ${{ inputs.force || 'false' }}
+        run: |
+          args=(--check-edge)
+          if [[ "$FORCE_REBUILD" == "true" ]]; then args+=(--force); fi
+          python3 scripts/maintenance_changes.py "${args[@]}"
+
+  qualify:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:
@@ -26,13 +62,20 @@ jobs:
           python-version: '3.15'
           allow-prereleases: false
       - name: Qualify source and runtime image
+        env:
+          IMAGE_INPUT_SHA256: ${{ needs.changes.outputs.image_inputs }}
         run: |
+          set -euo pipefail
+          [[ "$IMAGE_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]]
           python -m pip install '.[dev]'
           bash scripts/local_check.sh quick
           docker build --build-arg INSTALL_MSSQL=false \
             --label "org.opencontainers.image.source=https://github.com/HRAshton/vedrfolnir" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.vedrfolnir.image-input-sha256=$IMAGE_INPUT_SHA256" \
             --tag vedrfolnir:weekly-qualified .
+          actual="$(docker image inspect vedrfolnir:weekly-qualified --format '{{ index .Config.Labels "org.vedrfolnir.image-input-sha256" }}')"
+          [[ "$actual" == "$IMAGE_INPUT_SHA256" ]]
           python scripts/release_smoke.py --image vedrfolnir:weekly-qualified
       - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
         with:
@@ -62,6 +105,37 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 2
+
+  scan-existing:
+    needs: changes
+    if: needs.changes.outputs.changed == 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+        with:
+          image: ghcr.io/hrashton/vedrfolnir:edge
+          fail-build: false
+          severity-cutoff: high
+          output-format: json
+          output-file: container-audit.json
+      - name: Audit existing image without rebuilding
+        run: |
+          python3 scripts/check_container_audit.py \
+            --audit container-audit.json \
+            --policy security/container-risk-acceptances.json \
+            --decision container-audit-decision.json
 
   publish:
     needs: qualify

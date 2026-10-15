@@ -11,6 +11,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from scripts.maintenance_changes import classify_distribution_paths
+
 BASE_VERSION = r"v(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)"
 VERSION = re.compile(r"^" + BASE_VERSION + r"rc(?P<rc>[1-9][0-9]*)$")
 STABLE = re.compile(r"^" + BASE_VERSION + r"$")
@@ -88,8 +90,12 @@ def plan(last_tag: str | None = None) -> dict:
                 candidate = next_candidate(baseline, existing)
             except ValueError as error:
                 eligible, reason = False, str(error)
+    distribution = classify_distribution_paths(changed)
     return {"eligible": eligible, "reason": reason, "last_tag": baseline,
-            "candidate_tag": candidate, "source_sha": source_sha, "changed_paths": changed}
+            "candidate_tag": candidate, "source_sha": source_sha, "changed_paths": changed,
+            "distribution": distribution,
+            "requires_package_release": distribution == "package-and-image",
+            "requires_image_publication": distribution != "no-distribution"}
 
 
 def main():
@@ -105,6 +111,7 @@ def main():
         dest.write(f"- Baseline: `{result['last_tag']}`\n")
         dest.write(f"- Candidate: `{result['candidate_tag']}`\n")
         dest.write(f"- Source: `{result['source_sha']}`\n")
+        dest.write(f"- Distribution change: {result['distribution']}\n")
         dest.write("- No release tag, package or image was published.\n")
 
 
