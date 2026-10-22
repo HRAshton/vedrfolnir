@@ -1,0 +1,6 @@
+# Ubuntu 26.04 is available on GitHub-hosted runners but is not yet
+# included in actionlint's built-in runner labels (through v1.7.12).
+# List it explicitly until actionlint recognizes the label natively.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
