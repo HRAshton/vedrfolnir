@@ -32,7 +32,7 @@
     {
       "matchManagers": ["github-actions"],
       "groupName": "Weekly GitHub Actions",
-      "automerge": false
+      "automerge": true
     },
     {
       "matchManagers": ["dockerfile"],
