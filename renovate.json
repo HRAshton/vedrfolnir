@@ -10,7 +10,7 @@
   "semanticCommitScope": "deps",
   "automerge": false,
   "automergeType": "pr",
-  "platformAutomerge": true,
+  "platformAutomerge": false,
   "prConcurrentLimit": 3,
   "labels": ["dependencies"],
   "packageRules": [

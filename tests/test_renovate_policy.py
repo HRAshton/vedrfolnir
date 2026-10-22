@@ -35,6 +35,7 @@ def test_renovate_automerge_rules_match_approved_scopes():
 
     # Fail closed on any future auto-merge scope not explicitly reviewed here.
     assert config["automerge"] is False
+    assert config["platformAutomerge"] is False
     enabled = [rule for rule in config["packageRules"] if rule.get("automerge") is True]
     scopes = {}
     for rule in enabled:

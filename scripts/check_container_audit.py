@@ -55,9 +55,15 @@ def evaluate(audit, policy, today=None):
         today = datetime.now(timezone.utc).date()
     accepted_keys = validate_policy(policy)
     distro = audit.get("distro")
-    if not isinstance(distro, dict) or (
-        distro.get("name"), str(distro.get("version"))
-    ) != (policy["distro"]["name"], policy["distro"]["version"]):
+    expected_distro = policy["distro"]
+    # Grype reports Debian point releases such as 13.7; accept only the
+    # reviewed major release and numeric point versions, never Debian 14.
+    if (not isinstance(distro, dict)
+            or distro.get("name") != expected_distro["name"]
+            or re.fullmatch(
+                rf"{re.escape(expected_distro['version'])}(?:\.\d+)*",
+                str(distro.get("version")),
+            ) is None):
         raise ValueError("Scanner OS does not match the reviewed Debian 13 target")
     matches = audit.get("matches")
     if not isinstance(matches, list):

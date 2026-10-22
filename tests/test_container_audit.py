@@ -75,6 +75,23 @@ def test_expiration_boundary_is_inclusive(candidate):
     assert review(*candidate, when=date(2026, 10, 28))["passed"]
 
 
+@pytest.mark.parametrize("version", ["13", "13.7", "13.7.1"])
+def test_debian_13_point_release_is_accepted(candidate, version):
+    audit, policy = candidate
+    audit["distro"]["version"] = version
+    assert review(audit, policy)["passed"]
+
+
+@pytest.mark.parametrize("version", [
+    "12", "14", "14.0", "130", "13rc1", "13.7rc1", "13.x", "13.",
+])
+def test_unreviewed_distro_version_fails_closed(candidate, version):
+    audit, policy = candidate
+    audit["distro"]["version"] = version
+    with pytest.raises(ValueError, match="Scanner OS"):
+        review(audit, policy)
+
+
 def test_changed_distro_fails_closed(candidate):
     audit, policy = candidate
     audit["distro"]["version"] = "14"

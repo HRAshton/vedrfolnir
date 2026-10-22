@@ -16,17 +16,17 @@ concurrency:
 jobs:
   python-package:
     name: Python and package validation
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up stable CPython 3.15
         id: python
         continue-on-error: true
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
           allow-prereleases: false
@@ -61,10 +61,10 @@ jobs:
 
   tooling:
     name: Shell and workflow validation
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install linters
@@ -81,10 +81,10 @@ jobs:
 
   container:
     name: Container qualification
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -100,7 +100,7 @@ jobs:
           else
             echo "relevant=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         if: steps.changes.outputs.relevant == 'true'
         with:
           python-version: '3.15'
@@ -117,7 +117,7 @@ jobs:
         env:
           VEDRFOLNIR_IMAGE: vedrfolnir:ci
           ETA_ADMIN_TOKEN: ci-configuration-only-placeholder-unique-value
-      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7
         if: steps.changes.outputs.relevant == 'true'
         with:
           image: vedrfolnir:ci
@@ -132,7 +132,7 @@ jobs:
             --audit container-audit.json \
             --policy security/container-risk-acceptances.json \
             --decision container-audit-decision.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.changes.outputs.relevant == 'true'
         with:
           name: container-vulnerability-audit
