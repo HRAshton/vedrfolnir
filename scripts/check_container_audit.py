@@ -61,7 +61,7 @@ def evaluate(audit, policy, today=None):
     if (not isinstance(distro, dict)
             or distro.get("name") != expected_distro["name"]
             or re.fullmatch(
-                rf"{re.escape(expected_distro['version'])}(?:\\.\\d+)*",
+                rf"{re.escape(expected_distro['version'])}(?:\.\d+)*",
                 str(distro.get("version")),
             ) is None):
         raise ValueError("Scanner OS does not match the reviewed Debian 13 target")
