@@ -66,7 +66,7 @@ Historical Actions evidence belongs to the old repository.
 
 ## Dependency and storage compatibility
 
-`pyproject.toml` is the authoritative requirement specification. The optional `.[mssql]` extra installs pymssql. Runtime depends on River 0.26.x and SQLAlchemy 2.0.x; the package currently declares `>=3.15,<3.16`.
+`pyproject.toml` is the authoritative requirement specification. The optional `.[mssql]` extra installs pymssql. Runtime depends on River 0.26.x and SQLAlchemy 2.1.x; the package currently declares `>=3.15,<3.16`.
 
 SQLite schema initialization uses `create_all` plus an explicit versioned migration (SQLite `PRAGMA user_version` v1) for legacy `sched_pool_id` columns. Each further schema change must add an ordered, tested versioned step; do not silently assume a new schema. River pickle compatibility across dependency upgrades is not guaranteed; never load an untrusted model.
 
