@@ -153,7 +153,7 @@ jobs:
           docker load --input "$RUNNER_TEMP/image.tar"
           python scripts/release_smoke.py --image vedrfolnir:qualified
           sha256sum "$RUNNER_TEMP/image.tar" | sed "s|$RUNNER_TEMP/||" > "$RUNNER_TEMP/image.sha256"
-      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7
+      - uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7
         with:
           image: vedrfolnir:qualified
           fail-build: false

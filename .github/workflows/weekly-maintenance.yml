@@ -77,7 +77,7 @@ jobs:
           actual="$(docker image inspect vedrfolnir:weekly-qualified --format '{{ index .Config.Labels "org.vedrfolnir.image-input-sha256" }}')"
           [[ "$actual" == "$IMAGE_INPUT_SHA256" ]]
           python scripts/release_smoke.py --image vedrfolnir:weekly-qualified
-      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7
+      - uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7
         with:
           image: vedrfolnir:weekly-qualified
           fail-build: false
@@ -123,7 +123,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7
+      - uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7
         with:
           image: ghcr.io/hrashton/vedrfolnir:edge
           fail-build: false
