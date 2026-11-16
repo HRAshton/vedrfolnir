@@ -4,14 +4,14 @@ set -Eeuo pipefail
 PREFIX="${1:?Usage: setup_python315.sh INSTALL_PREFIX}"
 BUILD_DIR="$(mktemp -d)"
 trap 'rm -rf "$BUILD_DIR"' EXIT
-curl -fL --retry 3 https://www.python.org/ftp/python/3.15.0/Python-3.15.0.tar.xz \
+curl -fL --retry 3 https://www.python.org/ftp/python/3.15.2/Python-3.15.2.tar.xz \
   -o "$BUILD_DIR/python.tar.xz"
-printf '%s  %s\n' ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575 \
+printf '%s  %s\n' 8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de \
   "$BUILD_DIR/python.tar.xz" | sha256sum -c -
 tar --no-same-owner -xf "$BUILD_DIR/python.tar.xz" -C "$BUILD_DIR"
-cd "$BUILD_DIR/Python-3.15.0"
+cd "$BUILD_DIR/Python-3.15.2"
 ./configure --prefix="$PREFIX" --with-ensurepip=install
 make -j2
 make install
 ln -s python3.15 "$PREFIX/bin/python"
-"$PREFIX/bin/python" -c 'import sys, ssl, sqlite3, zlib, bz2, lzma, ctypes; assert sys.version_info[:3] == (3, 15, 0) and sys.version_info.releaselevel == "final", sys.version'
+"$PREFIX/bin/python" -c 'import sys, ssl, sqlite3, zlib, bz2, lzma, ctypes; assert sys.version_info[:3] == (3, 15, 2) and sys.version_info.releaselevel == "final", sys.version'

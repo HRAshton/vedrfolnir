@@ -2,8 +2,8 @@
 # (2026-10-09). Build the stable upstream release with a verified SHA256
 # instead of shipping a Python release-candidate interpreter.
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS python-build
-ARG PYTHON_VERSION=3.15.0
-ARG PYTHON_SHA256=ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
+ARG PYTHON_VERSION=3.15.2
+ARG PYTHON_SHA256=8b5536d280142ecf6cdfe15d12a21ba1c65e300bbf7b28a8d0cdb849575797de
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     build-essential ca-certificates curl xz-utils pkg-config \
     libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
@@ -42,7 +42,7 @@ ENV PATH=/opt/python/bin:$PATH \
     PYTHONUNBUFFERED=1
 RUN ln -s /opt/python/bin/python3.15 /opt/python/bin/python \
     && ln -s /opt/python/bin/pip3.15 /opt/python/bin/pip \
-    && python -c "import sys, ssl, sqlite3, zlib, pyexpat; assert pyexpat.version_info >= (2, 9, 0); assert sys.version_info[:3] == (3, 15, 0)"
+    && python -c "import sys, ssl, sqlite3, zlib, pyexpat; assert pyexpat.version_info >= (2, 9, 0); assert sys.version_info[:3] == (3, 15, 2)"
 
 WORKDIR /srv
 COPY pyproject.toml README.md ./
