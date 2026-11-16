@@ -42,7 +42,7 @@ documentation-only PRs) and pushes to `master`, on `ubuntu-24.04` with
 `contents: read` and no persisted checkout credentials. Stable job names:
 
 - **Python and package validation**: stable CPython 3.15 via setup-python;
-  when unavailable, a checksum-verified source build of 3.15.0. An explicit
+  when unavailable, a checksum-verified source build of 3.15.2. An explicit
   version/final-release check prevents substitution of an older or prerelease
   interpreter. Installs `.[dev]` with real River; runs the full gate and
   compileall; checks PR titles and non-merge commit subjects.

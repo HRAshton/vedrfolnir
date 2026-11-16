@@ -54,7 +54,7 @@ Other architectures and SQL Server remain unqualified.
 ## Security-qualified build inputs
 
 The image uses a pinned Debian 13 stable base and installs its current security
-updates. It builds checksum-verified CPython 3.15.0 and Expat 2.9.0, linking
+updates. It builds checksum-verified CPython 3.15.2 and Expat 2.9.0, linking
 Python to the fixed external parser rather than the bundled 2.8.5. Runtime
 smoke checks pyexpat version as well as interpreter/UID/driver scope. Review
 Python and Expat source checksums together with base-digest updates.

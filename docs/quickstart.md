@@ -2,7 +2,7 @@
 
 [← Documentation](README.md) · [Source contract](contracts.md) · [Operations](operations.md)
 
-**Current source-build route:** the Dockerfile builds CPython 3.15.0
+**Current source-build route:** the Dockerfile builds CPython 3.15.2
 from a source archive with a pinned SHA-256 checksum in a dedicated builder
 stage. The first image build is more CPU-intensive;
 subsequent local builds can reuse the Docker cache. No release-candidate
