@@ -1,7 +1,7 @@
 # Official python:3.15-slim was not published when 3.15.0 shipped
 # (2026-10-09). Build the stable upstream release with a verified SHA256
 # instead of shipping a Python release-candidate interpreter.
-FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS python-build
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS python-build
 ARG PYTHON_VERSION=3.15.0
 ARG PYTHON_SHA256=ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
@@ -29,7 +29,7 @@ RUN curl -fL --retry 3 "https://www.python.org/ftp/python/${PYTHON_VERSION}/Pyth
     && make -j2 \
     && make install
 
-FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     ca-certificates passwd libssl3t64 zlib1g libbz2-1.0 libreadline8t64 \
     libsqlite3-0 libffi8 liblzma5 libgdbm6t64 libgdbm-compat4t64 \

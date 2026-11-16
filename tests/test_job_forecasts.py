@@ -33,7 +33,7 @@ def environment(monkeypatch):
     config = replace(settings, mode="files", poll_seconds=120)
     svc = EngineService(factory, config)
     monkeypatch.setattr(api.app.state, "Session", factory, raising=False)
-    monkeypatch.setattr(api.app.state, "service", svc, raising=False)
+    monkeypatch.setitem(api.app.state._state, "service", svc)
     monkeypatch.setattr(api, "utcnow", lambda: NOW)
     monkeypatch.setattr(service_module, "utcnow", lambda: NOW)
     with factory.begin() as s:
@@ -144,7 +144,7 @@ def test_persisted_snapshot_freshness_survives_process_restart(environment, monk
     load([row("target")])
     restarted = EngineService(factory, svc.config)
     assert restarted.last_success is None
-    monkeypatch.setattr(api.app.state, "service", restarted)
+    monkeypatch.setitem(api.app.state._state, "service", restarted)
     assert client.get("/api/jobs/target").json()["data_source_sync"] == "recent"
 
 
