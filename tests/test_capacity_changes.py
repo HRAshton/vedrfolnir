@@ -27,7 +27,7 @@ def deployment(tmp_path, monkeypatch):
     monkeypatch.setattr(service_module, "utcnow", lambda: clock[0])
     monkeypatch.setattr(api, "utcnow", lambda: clock[0])
     monkeypatch.setattr(api.app.state, "Session", factory, raising=False)
-    monkeypatch.setattr(api.app.state, "service", svc, raising=False)
+    monkeypatch.setitem(api.app.state._state, "service", svc)
     with factory.begin() as s:
         for i in range(5):
             start = NOW-timedelta(minutes=100+i*20)
@@ -100,7 +100,7 @@ def test_pause_resume_and_restart_preserve_unavailable_first_cohort(deployment, 
     assert forecast(client, "running")["forecast_available"] is True
     before = client.get("/api/job-forecasts").json()
     restarted = EngineService(factory, svc.config)
-    monkeypatch.setattr(api.app.state, "service", restarted)
+    monkeypatch.setitem(api.app.state._state, "service", restarted)
     clock[0] = NOW+timedelta(minutes=1)
     snapshot(2)
     assert restarted.tick()["job_observations"]["recorded"] == 0
